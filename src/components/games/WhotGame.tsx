@@ -325,21 +325,21 @@ export default function WhotGame({ session, user }: WhotGameProps) {
   return (
     <div className="space-y-8 relative">
       {/* Header */}
-      <div className="w-full max-w-4xl mx-auto flex items-center justify-between px-4 py-6">
+      <div className="w-full max-w-4xl mx-auto flex items-center justify-between px-4 py-4 sm:py-6">
         <Button 
           variant="ghost" 
           onClick={() => gameService.updateSession(session.id, { status: 'waiting' })}
-          className="text-zinc-400 hover:text-white hover:bg-white/5 rounded-full"
+          className="text-zinc-400 hover:text-white hover:bg-white/5 rounded-full p-2 sm:px-4"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" /> Lobby
+          <ArrowLeft className="w-5 h-5 sm:mr-2" /> <span className="hidden sm:inline">Lobby</span>
         </Button>
         <div className="text-center">
-          <h1 className="text-3xl font-black text-white uppercase tracking-tighter">WHOT <span className="text-orange-500">NAIJA</span></h1>
+          <h1 className="text-xl sm:text-3xl font-black text-white uppercase tracking-tighter">WHOT <span className="text-orange-500">NAIJA</span></h1>
         </div>
         <Button 
           variant="ghost" 
           onClick={() => setShowRules(true)}
-          className="text-zinc-400 hover:text-white hover:bg-white/5 rounded-full"
+          className="text-zinc-400 hover:text-white hover:bg-white/5 rounded-full p-2"
         >
           <Info className="w-5 h-5" />
         </Button>
@@ -417,12 +417,12 @@ export default function WhotGame({ session, user }: WhotGameProps) {
       </AnimatePresence>
 
       {/* Players */}
-      <div className="flex justify-center gap-4 overflow-x-auto pb-4">
+      <div className="flex justify-center gap-2 sm:gap-4 overflow-x-auto pb-4 px-4 no-scrollbar">
         {session.players.map(p => (
-          <div key={p.id} className={`flex flex-col items-center p-3 rounded-xl border transition-all ${session.currentTurn === p.id ? 'bg-orange-500/10 border-orange-500' : 'bg-zinc-900 border-zinc-800 opacity-60'}`}>
-            <img src={p.avatar} className="w-10 h-10 rounded-full mb-2" alt={p.name} />
-            <p className="text-xs font-bold text-white truncate w-20 text-center">{p.name} {p.id === user.id && '(You)'}</p>
-            <p className="text-[10px] text-zinc-500">{gameState.playerHands[p.id]?.length || 0} Cards</p>
+          <div key={p.id} className={`flex flex-col items-center p-2 sm:p-3 rounded-xl border transition-all min-w-[80px] sm:min-w-[100px] ${session.currentTurn === p.id ? 'bg-orange-500/10 border-orange-500' : 'bg-zinc-900 border-zinc-800 opacity-60'}`}>
+            <img src={p.avatar} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full mb-1 sm:mb-2" alt={p.name} />
+            <p className="text-[10px] sm:text-xs font-bold text-white truncate w-full text-center px-1">{p.name} {p.id === user.id && '(You)'}</p>
+            <p className="text-[8px] sm:text-[10px] text-zinc-500">{gameState.playerHands[p.id]?.length || 0} Cards</p>
           </div>
         ))}
       </div>
@@ -469,7 +469,7 @@ export default function WhotGame({ session, user }: WhotGameProps) {
       </AnimatePresence>
 
       {/* Table */}
-      <div className="flex justify-center items-center gap-16 py-20 bg-[#3e2723] rounded-[4rem] border-[12px] border-[#2e1a16] relative overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.6)]" style={{
+      <div className="flex justify-center items-center gap-4 sm:gap-16 py-10 sm:py-20 bg-[#3e2723] rounded-3xl sm:rounded-[4rem] border-4 sm:border-[12px] border-[#2e1a16] relative overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.6)] mx-2 sm:mx-0" style={{
         backgroundImage: 'url("https://www.transparenttextures.com/patterns/wood-pattern.png")',
         backgroundColor: '#3e2723'
       }}>
@@ -482,14 +482,14 @@ export default function WhotGame({ session, user }: WhotGameProps) {
           className="relative group cursor-pointer" 
           onClick={() => canIPlay && drawCard(session.currentTurn)}
         >
-          <div className="w-40 h-60 bg-zinc-800 rounded-2xl border-4 border-zinc-700 flex items-center justify-center shadow-[0_15px_35px_rgba(0,0,0,0.4)] transform transition-all group-hover:border-orange-500/50 relative overflow-hidden">
+          <div className="w-24 h-36 sm:w-40 sm:h-60 bg-zinc-800 rounded-xl sm:rounded-2xl border-2 sm:border-4 border-zinc-700 flex items-center justify-center shadow-[0_15px_35px_rgba(0,0,0,0.4)] transform transition-all group-hover:border-orange-500/50 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-            <div className="absolute inset-3 border-2 border-zinc-700/50 rounded-xl flex flex-col items-center justify-center gap-4">
-              <Layers className="w-16 h-16 text-zinc-600 group-hover:text-orange-500/50 transition-colors" />
-              <div className="text-zinc-600 font-black text-xl tracking-tighter group-hover:text-orange-500/50">MARKET</div>
+            <div className="absolute inset-2 sm:inset-3 border sm:border-2 border-zinc-700/50 rounded-lg sm:rounded-xl flex flex-col items-center justify-center gap-2 sm:gap-4">
+              <Layers className="w-8 h-8 sm:w-16 sm:h-16 text-zinc-600 group-hover:text-orange-500/50 transition-colors" />
+              <div className="text-zinc-600 font-black text-[10px] sm:text-xl tracking-tighter group-hover:text-orange-500/50 uppercase">Market</div>
             </div>
           </div>
-          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 text-sm font-black text-white/40 uppercase tracking-widest whitespace-nowrap bg-black/20 px-4 py-1 rounded-full backdrop-blur-md">
+          <div className="absolute -bottom-8 sm:-bottom-10 left-1/2 -translate-x-1/2 text-[8px] sm:text-sm font-black text-white/40 uppercase tracking-widest whitespace-nowrap bg-black/20 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full backdrop-blur-md">
             Cards: {gameState.deck.length}
           </div>
         </motion.div>
@@ -505,24 +505,24 @@ export default function WhotGame({ session, user }: WhotGameProps) {
               transition={{ type: 'spring', damping: 12, stiffness: 120 }}
               className="relative z-10"
             >
-              <WhotCardUI card={topCard} size="xl" disabled />
+              <WhotCardUI card={topCard} size={window.innerWidth < 640 ? 'md' : 'xl'} disabled />
             </motion.div>
           </AnimatePresence>
-          <div className="absolute -bottom-14 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 w-full">
+          <div className="absolute -bottom-10 sm:-bottom-14 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 sm:gap-3 w-full">
             {gameState.penalty > 0 && (
               <motion.div 
                 initial={{ scale: 0 }} animate={{ scale: 1 }}
-                className="bg-red-600 text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg mb-2"
+                className="bg-red-600 text-white px-3 py-0.5 sm:px-4 sm:py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg mb-1"
               >
                 Penalty: +{gameState.penalty}
               </motion.div>
             )}
-            <div className="text-xs font-black text-white/50 uppercase tracking-[0.2em]">Active Suit</div>
+            <div className="text-[8px] sm:text-xs font-black text-white/50 uppercase tracking-[0.2em]">Active Suit</div>
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ repeat: Infinity, duration: 2 }}
             >
-              <Badge className="bg-orange-500 text-white capitalize px-6 py-2 text-lg font-black shadow-[0_10px_20px_rgba(249,115,22,0.4)] border-2 border-white/20 rounded-xl">
+              <Badge className="bg-orange-500 text-white capitalize px-3 py-1 sm:px-6 sm:py-2 text-sm sm:text-lg font-black shadow-[0_10px_20px_rgba(249,115,22,0.4)] border-2 border-white/20 rounded-lg sm:rounded-xl">
                 {gameState.currentSuit}
               </Badge>
             </motion.div>
@@ -531,23 +531,23 @@ export default function WhotGame({ session, user }: WhotGameProps) {
       </div>
 
       {/* Current Player's Hand (Visible in Local Mode) */}
-      <div className="fixed bottom-4 left-0 right-0 px-4 z-40">
-        <div className="max-w-6xl mx-auto bg-black/40 backdrop-blur-xl p-6 rounded-t-[3rem] border-t border-white/10 shadow-2xl">
-          <div className="flex items-center justify-between mb-6 px-4">
-            <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
-                <User className="w-4 h-4 text-white" />
+      <div className="fixed bottom-0 left-0 right-0 z-40">
+        <div className="max-w-6xl mx-auto bg-black/60 backdrop-blur-2xl p-4 sm:p-6 rounded-t-[2rem] sm:rounded-t-[3rem] border-t border-white/10 shadow-2xl">
+          <div className="flex items-center justify-between mb-2 sm:mb-6 px-2 sm:px-4">
+            <h3 className="text-[10px] sm:text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 sm:gap-3">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-orange-500 flex items-center justify-center">
+                <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
               </div>
               {session.isLocal ? `${session.players.find(p => p.id === session.currentTurn)?.name}'s Hand` : 'Your Hand'}
             </h3>
             {canIPlay && (
-              <Badge className="bg-green-500 text-white animate-bounce px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-tighter">
+              <Badge className="bg-green-500 text-white animate-bounce px-2 sm:px-4 py-1 rounded-full text-[8px] sm:text-xs font-black uppercase tracking-tighter">
                 {isThinking ? 'AI is thinking...' : 'Your Turn'}
               </Badge>
             )}
           </div>
           
-          <div className="flex justify-center gap-4 overflow-x-auto py-4 px-8 no-scrollbar min-h-[250px] items-end">
+          <div className="flex justify-center gap-1 sm:gap-4 overflow-x-auto py-2 sm:py-4 px-4 sm:px-8 no-scrollbar min-h-[160px] sm:min-h-[250px] items-end">
             <AnimatePresence>
               {(session.isLocal || isMyTurn ? currentHand : gameState.playerHands[user.id] || []).map((card, i) => (
                 <motion.div
@@ -558,13 +558,13 @@ export default function WhotGame({ session, user }: WhotGameProps) {
                   exit={{ y: -200, opacity: 0, scale: 0.5 }}
                   whileHover={{ y: -40, scale: 1.1, zIndex: 50, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                  className="-ml-8 first:ml-0"
+                  className="-ml-10 sm:-ml-8 first:ml-0"
                 >
                   <WhotCardUI 
                     card={card} 
                     onClick={() => canIPlay && playCard(card, session.currentTurn)}
                     disabled={!canIPlay}
-                    size="lg"
+                    size={window.innerWidth < 640 ? 'md' : 'lg'}
                   />
                 </motion.div>
               ))}

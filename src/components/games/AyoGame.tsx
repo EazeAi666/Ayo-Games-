@@ -114,34 +114,30 @@ export default function AyoGame({ session, user }: AyoGameProps) {
   const isP1 = user.id === p1.id;
 
   return (
-    <div className="relative min-h-screen bg-[#0a0a0a] flex flex-col items-center py-12 px-4 overflow-hidden">
+    <div className="relative min-h-screen bg-[#0a0a0a] flex flex-col items-center pb-12 px-2 sm:px-4 overflow-x-hidden">
       {/* Background Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-red-900/10 blur-[120px] rounded-full pointer-events-none" />
       
       {/* Header */}
-      <div className="w-full max-w-4xl flex items-center justify-between mb-12 z-10">
+      <div className="w-full max-w-4xl mx-auto flex items-center justify-between px-2 sm:px-4 py-4 sm:py-6 relative z-50">
         <Button 
           variant="ghost" 
           onClick={() => gameService.updateSession(session.id, { status: 'waiting' })}
-          className="text-zinc-400 hover:text-white hover:bg-white/5 rounded-full"
+          className="text-zinc-400 hover:text-white hover:bg-white/5 rounded-full p-2 sm:px-4"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" /> Lobby
+          <ArrowLeft className="w-5 h-5 sm:mr-2" /> <span className="hidden sm:inline">Lobby</span>
         </Button>
         <div className="text-center">
-          <h1 className="text-4xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
-            <span className="text-red-600">AYO</span> BOARD
-          </h1>
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">Strategic Seed Sowing</p>
+          <h1 className="text-xl sm:text-3xl font-black text-white uppercase tracking-tighter">AYO <span className="text-red-500">NCHO</span></h1>
         </div>
         <Button 
           variant="ghost" 
           onClick={() => setShowRules(true)}
-          className="text-zinc-400 hover:text-white hover:bg-white/5 rounded-full"
+          className="text-zinc-400 hover:text-white hover:bg-white/5 rounded-full p-2"
         >
           <Info className="w-5 h-5" />
         </Button>
       </div>
-
       {/* Rules Modal */}
       <AnimatePresence>
         {showRules && (
@@ -199,41 +195,41 @@ export default function AyoGame({ session, user }: AyoGameProps) {
         </div>
 
         {/* The Board */}
-        <div className="bg-[#1a1a1a] rounded-[2.5rem] p-8 border-4 border-[#2a2a2a] shadow-[inset_0_4px_20px_rgba(0,0,0,0.8)] relative">
+        <div className="bg-[#1a1a1a] rounded-3xl sm:rounded-[2.5rem] p-4 sm:p-8 border-2 sm:border-4 border-[#2a2a2a] shadow-[inset_0_4px_20px_rgba(0,0,0,0.8)] relative">
           {/* Decorative Wood Texture Overlay */}
           <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/wood-pattern.png")' }} />
           
-          <div className="grid grid-cols-6 gap-6 relative z-10">
+          <div className="grid grid-cols-6 gap-2 sm:gap-6 relative z-10">
             {/* Player 2 Pits (Top Row, Right to Left) */}
             {[11, 10, 9, 8, 7, 6].map((idx) => (
-              <div key={idx} className="flex flex-col items-center gap-3">
-                <div className="text-[10px] font-black text-zinc-700 uppercase">{idx + 1}</div>
+              <div key={idx} className="flex flex-col items-center gap-1 sm:gap-3">
+                <div className="text-[8px] sm:text-[10px] font-black text-zinc-700 uppercase">{idx + 1}</div>
                 <motion.button
                   whileHover={!isThinking && session.currentTurn === p2.id && gameState.pits[idx] > 0 ? { scale: 1.05, backgroundColor: '#2a2a2a' } : {}}
                   whileTap={!isThinking && session.currentTurn === p2.id && gameState.pits[idx] > 0 ? { scale: 0.95 } : {}}
                   onClick={() => playPit(idx, p2.id)}
                   disabled={isThinking || session.currentTurn !== p2.id || gameState.pits[idx] === 0}
                   className={`w-full aspect-square rounded-full flex items-center justify-center relative transition-all duration-300 ${
-                    lastMove === idx ? 'ring-4 ring-red-600/50' : ''
-                  } ${gameState.pits[idx] > 0 ? 'bg-[#121212] shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)]' : 'bg-[#0a0a0a] shadow-inner'}`}
+                    lastMove === idx ? 'ring-2 sm:ring-4 ring-red-600/50' : ''
+                  } ${gameState.pits[idx] > 0 ? 'bg-[#121212] shadow-[inset_0_2px_5px_rgba(0,0,0,0.6)] sm:shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)]' : 'bg-[#0a0a0a] shadow-inner'}`}
                 >
-                  <div className="grid grid-cols-3 gap-1 p-2">
+                  <div className="grid grid-cols-3 gap-0.5 sm:gap-1 p-1 sm:p-2">
                     {Array.from({ length: Math.min(gameState.pits[idx], 9) }).map((_, i) => (
                       <motion.div 
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         key={i} 
-                        className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-red-500 to-red-800 shadow-lg" 
+                        className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-gradient-to-br from-red-500 to-red-800 shadow-lg" 
                       />
                     ))}
                     {gameState.pits[idx] > 9 && (
-                      <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white bg-red-600/20 rounded-full">
+                      <div className="absolute inset-0 flex items-center justify-center text-[8px] sm:text-[10px] font-black text-white bg-red-600/20 rounded-full">
                         +{gameState.pits[idx] - 9}
                       </div>
                     )}
                   </div>
                   {gameState.pits[idx] > 0 && (
-                    <div className="absolute -bottom-2 bg-zinc-800 px-2 py-0.5 rounded-full text-[10px] font-black text-white border border-zinc-700">
+                    <div className="absolute -bottom-1 sm:-bottom-2 bg-zinc-800 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[10px] font-black text-white border border-zinc-700">
                       {gameState.pits[idx]}
                     </div>
                   )}
@@ -243,58 +239,58 @@ export default function AyoGame({ session, user }: AyoGameProps) {
 
             {/* Player 1 Pits (Bottom Row, Left to Right) */}
             {[0, 1, 2, 3, 4, 5].map((idx) => (
-              <div key={idx} className="flex flex-col items-center gap-3 mt-8">
+              <div key={idx} className="flex flex-col items-center gap-1 sm:gap-3 mt-4 sm:mt-8">
                 <motion.button
                   whileHover={!isThinking && session.currentTurn === p1.id && gameState.pits[idx] > 0 ? { scale: 1.05, backgroundColor: '#2a2a2a' } : {}}
                   whileTap={!isThinking && session.currentTurn === p1.id && gameState.pits[idx] > 0 ? { scale: 0.95 } : {}}
                   onClick={() => playPit(idx, p1.id)}
                   disabled={isThinking || session.currentTurn !== p1.id || gameState.pits[idx] === 0}
                   className={`w-full aspect-square rounded-full flex items-center justify-center relative transition-all duration-300 ${
-                    lastMove === idx ? 'ring-4 ring-red-600/50' : ''
-                  } ${gameState.pits[idx] > 0 ? 'bg-[#121212] shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)]' : 'bg-[#0a0a0a] shadow-inner'}`}
+                    lastMove === idx ? 'ring-2 sm:ring-4 ring-red-600/50' : ''
+                  } ${gameState.pits[idx] > 0 ? 'bg-[#121212] shadow-[inset_0_2px_5px_rgba(0,0,0,0.6)] sm:shadow-[inset_0_4px_10px_rgba(0,0,0,0.6)]' : 'bg-[#0a0a0a] shadow-inner'}`}
                 >
-                  <div className="grid grid-cols-3 gap-1 p-2">
+                  <div className="grid grid-cols-3 gap-0.5 sm:gap-1 p-1 sm:p-2">
                     {Array.from({ length: Math.min(gameState.pits[idx], 9) }).map((_, i) => (
                       <motion.div 
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         key={i} 
-                        className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-zinc-100 to-zinc-400 shadow-lg" 
+                        className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-gradient-to-br from-zinc-100 to-zinc-400 shadow-lg" 
                       />
                     ))}
                     {gameState.pits[idx] > 9 && (
-                      <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-zinc-900 bg-white/20 rounded-full">
+                      <div className="absolute inset-0 flex items-center justify-center text-[8px] sm:text-[10px] font-black text-zinc-900 bg-white/20 rounded-full">
                         +{gameState.pits[idx] - 9}
                       </div>
                     )}
                   </div>
                   {gameState.pits[idx] > 0 && (
-                    <div className="absolute -top-2 bg-zinc-800 px-2 py-0.5 rounded-full text-[10px] font-black text-white border border-zinc-700">
+                    <div className="absolute -top-1 sm:-top-2 bg-zinc-800 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[10px] font-black text-white border border-zinc-700">
                       {gameState.pits[idx]}
                     </div>
                   )}
                 </motion.button>
-                <div className="text-[10px] font-black text-zinc-700 uppercase">{idx + 1}</div>
+                <div className="text-[8px] sm:text-[10px] font-black text-zinc-700 uppercase">{idx + 1}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Player Info (Bottom) */}
-        <div className="flex items-center justify-between mt-12">
-          <div className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${session.currentTurn === p1.id ? 'bg-red-600/10 border-red-600 shadow-[0_0_20px_rgba(220,38,38,0.2)]' : 'bg-zinc-900 border-zinc-800 opacity-60'}`}>
-            <img src={p1.avatar} className="w-12 h-12 rounded-full border-2 border-white/10" alt={p1.name} />
+        <div className="flex items-center justify-between mt-6 sm:mt-12">
+          <div className={`flex items-center gap-2 sm:gap-4 p-2 sm:p-4 rounded-xl sm:rounded-2xl border transition-all ${session.currentTurn === p1.id ? 'bg-red-600/10 border-red-600 shadow-[0_0_20px_rgba(220,38,38,0.2)]' : 'bg-zinc-900 border-zinc-800 opacity-60'}`}>
+            <img src={p1.avatar} className="w-8 h-8 sm:w-12 sm:h-12 rounded-full border-2 border-white/10" alt={p1.name} />
             <div>
-              <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">{p1.name} (You)</p>
-              <p className="text-2xl font-black text-white">{gameState.captured[p1.id] || 0} <span className="text-xs text-zinc-500 font-normal">Captured</span></p>
+              <p className="text-[8px] sm:text-xs font-black text-zinc-500 uppercase tracking-widest truncate w-20 sm:w-auto">{p1.name} (You)</p>
+              <p className="text-sm sm:text-2xl font-black text-white">{gameState.captured[p1.id] || 0} <span className="text-[8px] sm:text-xs text-zinc-500 font-normal">Captured</span></p>
             </div>
           </div>
           
           <div className="text-right">
-            <p className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">Status</p>
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${session.status === 'playing' ? 'bg-green-500 animate-pulse' : 'bg-zinc-700'}`} />
-              <span className="text-white font-bold uppercase text-sm tracking-tighter">
+            <p className="text-[8px] sm:text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">Status</p>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${session.status === 'playing' ? 'bg-green-500 animate-pulse' : 'bg-zinc-700'}`} />
+              <span className="text-white font-bold uppercase text-[10px] sm:text-sm tracking-tighter">
                 {session.status === 'playing' ? (isMyTurn ? "Your Turn" : "Opponent Turn") : "Game Finished"}
               </span>
             </div>

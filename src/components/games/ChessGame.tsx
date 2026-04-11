@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Undo2, Lightbulb, BrainCircuit, Trophy, ArrowLeft, Info } from 'lucide-react';
+import { Undo2, Lightbulb, BrainCircuit, Trophy, ArrowLeft, Info, Settings2, RotateCcw, User, Users } from 'lucide-react';
 
 interface ChessGameProps {
   session: GameSession;
@@ -34,6 +34,8 @@ export default function ChessGame({ session, user }: ChessGameProps) {
   const [moveSquares, setMoveSquares] = useState<Record<string, any>>({});
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [boardOrientation, setBoardOrientation] = useState<'white' | 'black'>(session.players[0]?.color === 'black' ? 'black' : 'white');
   const [lastMoveSquares, setLastMoveSquares] = useState<Record<string, any>>({});
   const [capturedPieces, setCapturedPieces] = useState<{ white: string[]; black: string[] }>({ white: [], black: [] });
   const [showPromotionDialog, setShowPromotionDialog] = useState<{ from: string; to: string } | null>(null);
@@ -326,27 +328,117 @@ export default function ChessGame({ session, user }: ChessGameProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f4ece4] text-zinc-900 font-serif">
+    <div className="flex flex-col min-h-screen bg-[#f4ece4] text-zinc-900 font-serif overflow-x-hidden">
       {/* Header */}
-      <div className="w-full max-w-4xl mx-auto flex items-center justify-between px-4 py-6">
+      <div className="w-full max-w-4xl mx-auto flex items-center justify-between px-4 py-4 sm:py-6 relative z-50">
         <Button 
           variant="ghost" 
           onClick={() => gameService.updateSession(session.id, { status: 'waiting' })}
-          className="text-[#5d4037] hover:bg-[#5d4037]/10 rounded-full"
+          className="text-[#5d4037] hover:bg-[#5d4037]/10 rounded-full p-2 sm:px-4"
         >
-          <ArrowLeft className="w-5 h-5 mr-2" /> Lobby
+          <ArrowLeft className="w-5 h-5 sm:mr-2" /> <span className="hidden sm:inline">Lobby</span>
         </Button>
         <div className="text-center">
-          <h1 className="text-3xl font-black text-[#2e1a16] uppercase tracking-tighter">CHESS <span className="text-[#5d4037]">MASTER</span></h1>
+          <h1 className="text-xl sm:text-3xl font-black text-[#2e1a16] uppercase tracking-tighter">CHESS <span className="text-[#5d4037]">MASTER</span></h1>
         </div>
-        <Button 
-          variant="ghost" 
-          onClick={() => setShowRules(true)}
-          className="text-[#5d4037] hover:bg-[#5d4037]/10 rounded-full"
-        >
-          <Info className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Button 
+            variant="ghost" 
+            onClick={() => setShowSettings(true)}
+            className="text-[#5d4037] hover:bg-[#5d4037]/10 rounded-full p-2"
+          >
+            <Settings2 className="w-5 h-5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            onClick={() => setShowRules(true)}
+            className="text-[#5d4037] hover:bg-[#5d4037]/10 rounded-full p-2"
+          >
+            <Info className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
+              className="bg-white border-4 border-[#5d4037] p-8 rounded-[2rem] w-full max-w-md shadow-2xl"
+            >
+              <h2 className="text-2xl font-black text-[#2e1a16] mb-6 flex items-center gap-3">
+                <Settings2 className="text-orange-500" /> GAME SETTINGS
+              </h2>
+              
+              <div className="space-y-6">
+                {session.isAI && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-[#5d4037] uppercase tracking-widest">AI Difficulty</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['easy', 'hard', 'very_hard'].map(d => (
+                        <Button 
+                          key={d}
+                          onClick={() => gameService.updateSession(session.id, { difficulty: d as any })}
+                          className={`capitalize font-bold rounded-xl ${session.difficulty === d ? 'bg-[#5d4037] text-white' : 'bg-[#f4ece4] text-[#5d4037] hover:bg-[#d2b48c]'}`}
+                        >
+                          {d.replace('_', ' ')}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-[#5d4037] uppercase tracking-widest">Board Orientation</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      onClick={() => setBoardOrientation('white')}
+                      className={`font-bold rounded-xl ${boardOrientation === 'white' ? 'bg-[#5d4037] text-white' : 'bg-[#f4ece4] text-[#5d4037] hover:bg-[#d2b48c]'}`}
+                    >
+                      White Bottom
+                    </Button>
+                    <Button 
+                      onClick={() => setBoardOrientation('black')}
+                      className={`font-bold rounded-xl ${boardOrientation === 'black' ? 'bg-[#5d4037] text-white' : 'bg-[#f4ece4] text-[#5d4037] hover:bg-[#d2b48c]'}`}
+                    >
+                      Black Bottom
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-[#5d4037] uppercase tracking-widest">Board Theme</label>
+                  <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2">
+                    {themes.map((t) => (
+                      <button
+                        key={t.name}
+                        onClick={() => setBoardTheme({ dark: t.dark, light: t.light })}
+                        className={`flex items-center gap-3 p-2 rounded-xl transition-colors ${boardTheme.dark === t.dark ? 'bg-[#5d4037] text-white' : 'bg-[#f4ece4] text-[#5d4037] hover:bg-[#d2b48c]'}`}
+                      >
+                        <div className="flex w-6 h-6 rounded overflow-hidden border border-black/10 flex-shrink-0">
+                          <div className="w-1/2 h-full" style={{ backgroundColor: t.light }} />
+                          <div className="w-1/2 h-full" style={{ backgroundColor: t.dark }} />
+                        </div>
+                        <span className="text-xs font-bold">{t.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <Button onClick={() => setShowSettings(false)} className="w-full bg-[#5d4037] hover:bg-[#2e1a16] text-white font-black py-6 rounded-2xl shadow-lg">
+                    CLOSE
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Rules Modal */}
       <AnimatePresence>
@@ -385,11 +477,11 @@ export default function ChessGame({ session, user }: ChessGameProps) {
       </AnimatePresence>
 
       {/* Dr. Wolf Coach Section */}
-      <div className="max-w-2xl mx-auto w-full px-4 pt-8 pb-4">
+      <div className="max-w-2xl mx-auto w-full px-4 pt-4 sm:pt-8 pb-4">
         <div className="flex flex-col items-center gap-4">
-          <div className="relative flex items-start gap-4 w-full">
+          <div className="relative flex items-start gap-2 sm:gap-4 w-full">
             <div className="flex-shrink-0">
-              <div className="w-24 h-32 rounded-xl bg-[#d2b48c] border-2 border-[#5d4037] overflow-hidden shadow-lg">
+              <div className="w-16 h-20 sm:w-24 sm:h-32 rounded-xl bg-[#d2b48c] border-2 border-[#5d4037] overflow-hidden shadow-lg">
                 <img 
                   src="https://api.dicebear.com/7.x/avataaars/svg?seed=Wolf&backgroundColor=ffdfbf&mouth=smile&top=shortHair&hairColor=705c53" 
                   alt="Coach Wolf"
@@ -399,13 +491,13 @@ export default function ChessGame({ session, user }: ChessGameProps) {
             </div>
             
             <div className="flex-1 relative">
-              <div className="bg-white p-6 rounded-2xl border-2 border-[#5d4037] shadow-md relative after:content-[''] after:absolute after:top-6 after:-left-3 after:w-6 after:h-6 after:bg-white after:border-l-2 after:border-b-2 after:border-[#5d4037] after:rotate-45">
-                <p className="text-lg md:text-xl text-[#2e1a16] italic leading-relaxed font-medium">
+              <div className="bg-white p-3 sm:p-6 rounded-2xl border-2 border-[#5d4037] shadow-md relative after:content-[''] after:absolute after:top-4 sm:after:top-6 after:-left-2 sm:after:-left-3 after:w-4 sm:after:w-6 after:h-4 sm:after:h-6 after:bg-white after:border-l-2 after:border-b-2 after:border-[#5d4037] after:rotate-45">
+                <p className="text-xs sm:text-lg md:text-xl text-[#2e1a16] italic leading-relaxed font-medium">
                   {isCoachThinking ? "Thinking..." : coachMessage}
                 </p>
               </div>
               
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-2 mt-2 sm:mt-4">
                 <Button 
                   variant="outline" 
                   size="icon"
@@ -474,7 +566,7 @@ export default function ChessGame({ session, user }: ChessGameProps) {
         </div>
       </div>
 
-      <div className="flex-1 max-w-2xl mx-auto w-full px-4 pb-24">
+      <div className="flex-1 max-w-2xl mx-auto w-full px-2 sm:px-4 pb-24">
         {/* Game Over Overlay */}
         <AnimatePresence>
           {session.status === 'finished' && (
@@ -510,6 +602,20 @@ export default function ChessGame({ session, user }: ChessGameProps) {
         </AnimatePresence>
 
         <div className="flex flex-col items-center">
+          {/* Status Badge */}
+          <div className="mb-4 flex items-center gap-2">
+            {session.isLocal && (
+              <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-200 flex items-center gap-1">
+                <Users className="w-3 h-3" /> Local Family Mode
+              </Badge>
+            )}
+            {session.isAI && (
+              <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-200 flex items-center gap-1">
+                <BrainCircuit className="w-3 h-3" /> AI Training ({session.difficulty})
+              </Badge>
+            )}
+          </div>
+
           {/* Opponent Info */}
           <div className="w-full flex items-center justify-between mb-4 bg-white/50 p-3 rounded-xl border border-[#5d4037]/20">
             <div className="flex items-center gap-3">
@@ -529,6 +635,25 @@ export default function ChessGame({ session, user }: ChessGameProps) {
           </div>
 
           <div className="w-full aspect-square bg-[#d2b48c] rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-8 border-[#5d4037] p-1 relative">
+            {/* Turn Indicator Overlay (Local Play) */}
+            {session.isLocal && (
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40 bg-white/90 backdrop-blur-sm px-4 py-1 rounded-full border border-[#5d4037]/20 shadow-sm flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${gameData.game.turn() === 'w' ? 'bg-white border border-zinc-300' : 'bg-black'}`} />
+                <span className="text-[10px] font-black uppercase text-[#5d4037]">
+                  {currentPlayer?.name}'s Turn
+                </span>
+              </div>
+            )}
+
+            {/* Flip Board Button (Shortcut) */}
+            <button 
+              onClick={() => setBoardOrientation(prev => prev === 'white' ? 'black' : 'white')}
+              className="absolute bottom-2 right-2 z-40 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-lg border border-[#5d4037]/20 flex items-center justify-center text-[#5d4037] hover:bg-white transition-all shadow-sm"
+              title="Flip Board"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+
             {/* Promotion Dialog */}
             <AnimatePresence>
               {showPromotionDialog && (
@@ -557,7 +682,7 @@ export default function ChessGame({ session, user }: ChessGameProps) {
                   position={gameData.game.fen()} 
                   onPieceDrop={onDrop} 
                   onSquareClick={onSquareClick}
-                  boardOrientation={session.players[0]?.color === 'black' ? 'black' : 'white'}
+                  boardOrientation={boardOrientation}
                   customDarkSquareStyle={{ backgroundColor: boardTheme.dark }}
                   customLightSquareStyle={{ backgroundColor: boardTheme.light }}
                   customSquareStyles={{

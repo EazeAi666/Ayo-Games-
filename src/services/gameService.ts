@@ -74,7 +74,7 @@ class GameService {
       type,
       status: 'playing',
       players,
-      currentTurn: host.id,
+      currentTurn: type === 'chess' ? players.find(p => p.color === 'white')?.id || host.id : host.id,
       state: this.getInitialState(type),
       createdAt: Date.now(),
       isLocal: true,

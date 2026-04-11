@@ -5,7 +5,7 @@ import { aiService } from '../../services/aiService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'motion/react';
-import { Dice6, User, Home, Flag, Trophy } from 'lucide-react';
+import { Dice6, User, Home, Flag, Trophy, ArrowLeft, Info } from 'lucide-react';
 
 interface LudoGameProps {
   session: GameSession;
@@ -330,11 +330,31 @@ export default function LudoGame({ session, user }: LudoGameProps) {
   const winner = session.winner ? session.players.find(p => p.id === session.winner) : null;
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center py-8 px-4 overflow-hidden" style={{ 
+    <div className="relative min-h-screen flex flex-col items-center pb-12 px-2 sm:px-4 overflow-x-hidden" style={{ 
       backgroundImage: 'url("https://images.unsplash.com/photo-1588345921523-c2d6c5f10f21?q=80&w=2070&auto=format&fit=crop")',
       backgroundSize: 'cover',
       backgroundPosition: 'center'
     }}>
+      {/* Header */}
+      <div className="w-full max-w-4xl mx-auto flex items-center justify-between px-2 sm:px-4 py-4 sm:py-6 relative z-50">
+        <Button 
+          variant="ghost" 
+          onClick={() => gameService.updateSession(session.id, { status: 'waiting' })}
+          className="text-zinc-400 hover:text-white hover:bg-white/5 rounded-full p-2 sm:px-4"
+        >
+          <ArrowLeft className="w-5 h-5 sm:mr-2" /> <span className="hidden sm:inline">Lobby</span>
+        </Button>
+        <div className="text-center">
+          <h1 className="text-xl sm:text-3xl font-black text-white uppercase tracking-tighter">LUDO <span className="text-teal-500">PRO</span></h1>
+        </div>
+        <Button 
+          variant="ghost" 
+          onClick={() => setShowRules(true)}
+          className="text-zinc-400 hover:text-white hover:bg-white/5 rounded-full p-2"
+        >
+          <Info className="w-5 h-5" />
+        </Button>
+      </div>
       {/* Settings Modal */}
       <AnimatePresence>
         {showSettings && (
@@ -481,17 +501,19 @@ export default function LudoGame({ session, user }: LudoGameProps) {
       </AnimatePresence>
 
       {/* Scoreboard */}
-      <div className="w-full max-w-md mb-6 space-y-2">
-        <div className="bg-teal-900/80 backdrop-blur-sm border border-teal-700/50 rounded-xl p-4 shadow-xl">
-          {session.players.map((p, i) => (
-            <div key={p.id} className="flex justify-between items-center text-white font-bold">
-              <span className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i] }} />
-                {p.name}:
-              </span>
-              <span>{p.wins || 0}</span>
-            </div>
-          ))}
+      <div className="w-full max-w-md mb-4 sm:mb-6 space-y-2 px-4">
+        <div className="bg-teal-900/80 backdrop-blur-sm border border-teal-700/50 rounded-xl p-2 sm:p-4 shadow-xl">
+          <div className="grid grid-cols-2 sm:flex sm:flex-col gap-2">
+            {session.players.map((p, i) => (
+              <div key={p.id} className="flex justify-between items-center text-white font-bold text-[10px] sm:text-sm">
+                <span className="flex items-center gap-1 sm:gap-2 truncate">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i] }} />
+                  <span className="truncate">{p.name}:</span>
+                </span>
+                <span>{p.wins || 0}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -508,17 +530,17 @@ export default function LudoGame({ session, user }: LudoGameProps) {
 
         {/* Base Areas */}
         {/* Green (Top Left) */}
-        <div className="col-span-6 row-span-6 bg-green-600 p-4 border-r-4 border-b-4 border-[#5d4037] relative shadow-inner">
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-white font-black text-sm drop-shadow-lg uppercase tracking-widest">{session.players[0]?.name || 'Player 1'}</div>
-          <div className="w-full h-full bg-white/90 rounded-xl p-3 grid grid-cols-2 gap-3 shadow-2xl">
+        <div className="col-span-6 row-span-6 bg-green-600 p-1 sm:p-4 border-r-2 sm:border-r-4 border-b-2 sm:border-b-4 border-[#5d4037] relative shadow-inner">
+          <div className="absolute bottom-0.5 sm:bottom-2 left-1/2 -translate-x-1/2 text-white font-black text-[6px] sm:text-sm drop-shadow-lg uppercase tracking-widest truncate w-full text-center px-1">{session.players[0]?.name || 'Player 1'}</div>
+          <div className="w-full h-full bg-white/90 rounded-lg sm:rounded-xl p-1 sm:p-3 grid grid-cols-2 gap-1 sm:gap-3 shadow-2xl">
             {[0, 1, 2, 3].map(i => (
-              <div key={i} className="bg-green-50 rounded-full border-4 border-green-600 flex items-center justify-center shadow-inner">
+              <div key={i} className="bg-green-50 rounded-full border-2 sm:border-4 border-green-600 flex items-center justify-center shadow-inner">
                 {gameState.positions[session.players[0]?.id]?.[i] === -1 && (
                   <motion.div 
                     layoutId={`token-0-${i}`}
                     whileHover={{ scale: 1.2 }}
                     onClick={() => canIPlay && session.currentTurn === session.players[0]?.id && moveToken(i, session.players[0]?.id)}
-                    className="w-full h-full rounded-full bg-green-600 shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border-2 border-white/20 cursor-pointer" 
+                    className="w-full h-full rounded-full bg-green-600 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.3)] sm:shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border sm:border-2 border-white/20 cursor-pointer" 
                   />
                 )}
               </div>
@@ -526,17 +548,17 @@ export default function LudoGame({ session, user }: LudoGameProps) {
           </div>
         </div>
         {/* Yellow (Top Right) */}
-        <div className="col-start-10 col-span-6 row-span-6 bg-yellow-500 p-4 border-l-4 border-b-4 border-[#5d4037] relative shadow-inner">
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-white font-black text-sm drop-shadow-lg uppercase tracking-widest">{session.players[3]?.name || 'Player 4'}</div>
-          <div className="w-full h-full bg-white/90 rounded-xl p-3 grid grid-cols-2 gap-3 shadow-2xl">
+        <div className="col-start-10 col-span-6 row-span-6 bg-yellow-500 p-1 sm:p-4 border-l-2 sm:border-l-4 border-b-2 sm:border-b-4 border-[#5d4037] relative shadow-inner">
+          <div className="absolute bottom-0.5 sm:bottom-2 left-1/2 -translate-x-1/2 text-white font-black text-[6px] sm:text-sm drop-shadow-lg uppercase tracking-widest truncate w-full text-center px-1">{session.players[3]?.name || 'Player 4'}</div>
+          <div className="w-full h-full bg-white/90 rounded-lg sm:rounded-xl p-1 sm:p-3 grid grid-cols-2 gap-1 sm:gap-3 shadow-2xl">
             {[0, 1, 2, 3].map(i => (
-              <div key={i} className="bg-yellow-50 rounded-full border-4 border-yellow-500 flex items-center justify-center shadow-inner">
+              <div key={i} className="bg-yellow-50 rounded-full border-2 sm:border-4 border-yellow-500 flex items-center justify-center shadow-inner">
                 {gameState.positions[session.players[3]?.id]?.[i] === -1 && (
                   <motion.div 
                     layoutId={`token-3-${i}`}
                     whileHover={{ scale: 1.2 }}
                     onClick={() => canIPlay && session.currentTurn === session.players[3]?.id && moveToken(i, session.players[3]?.id)}
-                    className="w-full h-full rounded-full bg-yellow-500 shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border-2 border-white/20 cursor-pointer" 
+                    className="w-full h-full rounded-full bg-yellow-500 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.3)] sm:shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border sm:border-2 border-white/20 cursor-pointer" 
                   />
                 )}
               </div>
@@ -544,17 +566,17 @@ export default function LudoGame({ session, user }: LudoGameProps) {
           </div>
         </div>
         {/* Red (Bottom Left) */}
-        <div className="col-span-6 row-start-10 row-span-6 bg-red-600 p-4 border-r-4 border-t-4 border-[#5d4037] relative shadow-inner">
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 text-white font-black text-sm drop-shadow-lg uppercase tracking-widest">{session.players[2]?.name || 'Player 3'}</div>
-          <div className="w-full h-full bg-white/90 rounded-xl p-3 grid grid-cols-2 gap-3 shadow-2xl">
+        <div className="col-span-6 row-start-10 row-span-6 bg-red-600 p-1 sm:p-4 border-r-2 sm:border-r-4 border-t-2 sm:border-t-4 border-[#5d4037] relative shadow-inner">
+          <div className="absolute top-0.5 sm:top-2 left-1/2 -translate-x-1/2 text-white font-black text-[6px] sm:text-sm drop-shadow-lg uppercase tracking-widest truncate w-full text-center px-1">{session.players[2]?.name || 'Player 3'}</div>
+          <div className="w-full h-full bg-white/90 rounded-lg sm:rounded-xl p-1 sm:p-3 grid grid-cols-2 gap-1 sm:gap-3 shadow-2xl">
             {[0, 1, 2, 3].map(i => (
-              <div key={i} className="bg-red-50 rounded-full border-4 border-red-600 flex items-center justify-center shadow-inner">
+              <div key={i} className="bg-red-50 rounded-full border-2 sm:border-4 border-red-600 flex items-center justify-center shadow-inner">
                 {gameState.positions[session.players[2]?.id]?.[i] === -1 && (
                   <motion.div 
                     layoutId={`token-2-${i}`}
                     whileHover={{ scale: 1.2 }}
                     onClick={() => canIPlay && session.currentTurn === session.players[2]?.id && moveToken(i, session.players[2]?.id)}
-                    className="w-full h-full rounded-full bg-red-600 shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border-2 border-white/20 cursor-pointer" 
+                    className="w-full h-full rounded-full bg-red-600 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.3)] sm:shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border sm:border-2 border-white/20 cursor-pointer" 
                   />
                 )}
               </div>
@@ -562,17 +584,17 @@ export default function LudoGame({ session, user }: LudoGameProps) {
           </div>
         </div>
         {/* Blue (Bottom Right) */}
-        <div className="col-start-10 col-span-6 row-start-10 row-span-6 bg-blue-600 p-4 border-l-4 border-t-4 border-[#5d4037] relative shadow-inner">
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 text-white font-black text-sm drop-shadow-lg uppercase tracking-widest">{session.players[1]?.name || 'Player 2'}</div>
-          <div className="w-full h-full bg-white/90 rounded-xl p-3 grid grid-cols-2 gap-3 shadow-2xl">
+        <div className="col-start-10 col-span-6 row-start-10 row-span-6 bg-blue-600 p-1 sm:p-4 border-l-2 sm:border-l-4 border-t-2 sm:border-t-4 border-[#5d4037] relative shadow-inner">
+          <div className="absolute top-0.5 sm:top-2 left-1/2 -translate-x-1/2 text-white font-black text-[6px] sm:text-sm drop-shadow-lg uppercase tracking-widest truncate w-full text-center px-1">{session.players[1]?.name || 'Player 2'}</div>
+          <div className="w-full h-full bg-white/90 rounded-lg sm:rounded-xl p-1 sm:p-3 grid grid-cols-2 gap-1 sm:gap-3 shadow-2xl">
             {[0, 1, 2, 3].map(i => (
-              <div key={i} className="bg-blue-50 rounded-full border-4 border-blue-600 flex items-center justify-center shadow-inner">
+              <div key={i} className="bg-blue-50 rounded-full border-2 sm:border-4 border-blue-600 flex items-center justify-center shadow-inner">
                 {gameState.positions[session.players[1]?.id]?.[i] === -1 && (
                   <motion.div 
                     layoutId={`token-1-${i}`}
                     whileHover={{ scale: 1.2 }}
                     onClick={() => canIPlay && session.currentTurn === session.players[1]?.id && moveToken(i, session.players[1]?.id)}
-                    className="w-full h-full rounded-full bg-blue-600 shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border-2 border-white/20 cursor-pointer" 
+                    className="w-full h-full rounded-full bg-blue-600 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.3)] sm:shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border sm:border-2 border-white/20 cursor-pointer" 
                   />
                 )}
               </div>
@@ -591,7 +613,7 @@ export default function LudoGame({ session, user }: LudoGameProps) {
               <div className="absolute bottom-0 left-0 w-0 h-0 border-b-[45px] border-b-green-500 border-r-[45px] border-r-transparent border-t-[45px] border-t-transparent" />
             </div>
             {/* Two Dice in Center */}
-            <div className="absolute inset-0 flex items-center justify-center gap-4 pointer-events-auto scale-75 md:scale-100">
+            <div className="absolute inset-0 flex items-center justify-center gap-1 sm:gap-4 pointer-events-auto scale-50 sm:scale-100">
               <Dice 
                 value={gameState.diceValues?.[0] || 1} 
                 rolling={isRolling} 

@@ -10,7 +10,7 @@ import AyoGame from './components/games/AyoGame';
 import { Trophy, Users, Gamepad2, LogOut, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth } from './lib/firebase';
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -93,17 +93,11 @@ export default function App() {
         let userData: Player;
         
         if (savedUser) {
-          const parsed = JSON.parse(savedUser);
-          userData = { 
-            ...parsed, 
-            id: firebaseUser.uid,
-            name: parsed.name || firebaseUser.displayName || "Guest",
-            avatar: parsed.avatar || firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`
-          };
+          userData = { ...JSON.parse(savedUser), id: firebaseUser.uid };
         } else {
           userData = {
             id: firebaseUser.uid,
-            name: firebaseUser.displayName || "Guest",
+            name: firebaseUser.displayName || "Player",
             avatar: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
             wins: 0,
             losses: 0,
@@ -114,13 +108,7 @@ export default function App() {
         localStorage.setItem('ayo_user', JSON.stringify(userData));
         await gameService.updateUserProfile(userData);
       } else {
-        // Automatically sign in anonymously if not logged in
-        try {
-          await signInAnonymously(auth);
-        } catch (error) {
-          console.error("Anonymous Auth Error:", error);
-          setUser(null);
-        }
+        setUser(null);
       }
       setIsAuthLoading(false);
     });
@@ -136,6 +124,31 @@ export default function App() {
     }
   }, [activeSession?.id]);
 
+  const handleLogin = async () => {
+    if (!auth) {
+      alert("Firebase Authentication is not initialized. Please check your configuration.");
+      return;
+    }
+    try {
+      setIsAuthLoading(true);
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Auth Error:", error);
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (auth) {
+      await auth.signOut();
+    }
+    setUser(null);
+    setActiveSession(null);
+    localStorage.removeItem('ayo_user');
+  };
+
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -146,8 +159,28 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full bg-zinc-900 border border-zinc-800 p-8 rounded-2xl shadow-2xl"
+        >
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <Gamepad2 className="w-10 h-10 text-white" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-center text-white mb-2">Ayo Games</h1>
+          <p className="text-zinc-400 text-center mb-8">Sign in with Google to start playing</p>
+          
+          <Button 
+            onClick={handleLogin} 
+            className="w-full bg-white hover:bg-zinc-200 text-black font-bold py-6 rounded-lg transition-all flex items-center justify-center gap-3"
+          >
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" alt="Google" />
+            Sign in with Google
+          </Button>
+        </motion.div>
       </div>
     );
   }
@@ -169,6 +202,9 @@ export default function App() {
                 <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full" />
                 <span className="text-sm font-medium">{user.name}</span>
               </div>
+              <Button variant="ghost" size="icon" onClick={handleLogout} className="text-zinc-400 hover:text-white">
+                <LogOut className="w-5 h-5" />
+              </Button>
             </div>
           </div>
         </header>

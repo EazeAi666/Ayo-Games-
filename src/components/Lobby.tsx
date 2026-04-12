@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Users, Swords, PlayCircle, User, Settings2, Trophy, RefreshCw } from 'lucide-react';
+import { Plus, Users, Swords, PlayCircle, User, Settings2, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface LobbyProps {
@@ -47,24 +47,10 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const handleUpdateProfile = async () => {
+  const handleUpdateProfile = () => {
     const updatedUser = { ...user, name: profileName };
     localStorage.setItem('ayo_user', JSON.stringify(updatedUser));
-    await gameService.updateUserProfile(updatedUser);
-    setIsEditingProfile(false);
-    // No need to reload, state is managed in App.tsx but we can trigger a local update if needed
-    // For now, let's just let the user see the change
-  };
-
-  const changeAvatar = async () => {
-    const seeds = ['felix', 'max', 'buddy', 'lucky', 'sparky', 'rocky', 'shadow', 'king', 'queen'];
-    const randomSeed = seeds[Math.floor(Math.random() * seeds.length)] + Math.random().toString(36).substring(7);
-    const newAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomSeed}`;
-    const updatedUser = { ...user, avatar: newAvatar };
-    localStorage.setItem('ayo_user', JSON.stringify(updatedUser));
-    await gameService.updateUserProfile(updatedUser);
-    // Force a small state update to show the new avatar if we were passing it down
-    window.location.reload(); 
+    window.location.reload(); // Simple way to refresh user state in App.tsx
   };
 
   const handleStartGame = async () => {
@@ -119,10 +105,10 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
       {/* Profile Section */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl">
         <div className="flex flex-col md:flex-row items-center gap-6">
-          <div className="relative group" onClick={changeAvatar}>
+          <div className="relative group">
             <img src={user.avatar} className="w-24 h-24 rounded-full border-4 border-orange-500 shadow-lg" alt="Profile" />
             <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
-              <RefreshCw className="text-white w-6 h-6" />
+              <Settings2 className="text-white w-6 h-6" />
             </div>
           </div>
           <div className="flex-1 text-center md:text-left">
@@ -139,22 +125,9 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
             ) : (
               <div className="flex items-center justify-center md:justify-start gap-3">
                 <h1 className="text-3xl font-bold text-white">{user.name}</h1>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      localStorage.removeItem('ayo_games_sessions');
-                      window.location.reload();
-                    }}
-                    className="text-zinc-500 hover:text-red-400 text-xs"
-                  >
-                    Reset All Games
-                  </Button>
-                  <Button onClick={() => setIsEditingProfile(true)} variant="ghost" size="icon" className="text-zinc-500 hover:text-white">
-                    <Settings2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                <Button onClick={() => setIsEditingProfile(true)} variant="ghost" size="icon" className="text-zinc-500 hover:text-white">
+                  <Settings2 className="w-4 h-4" />
+                </Button>
               </div>
             )}
             <div className="flex items-center justify-center md:justify-start gap-4 mt-2">

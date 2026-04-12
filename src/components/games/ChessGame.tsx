@@ -241,8 +241,10 @@ export default function ChessGame({ session, user }: ChessGameProps) {
     if (!session.isLocal && session.currentTurn !== user.id) return false;
 
     // Check for promotion
-    const piece = gameData.game.get(sourceSquare as any);
-    if (piece?.type === 'p' && ((piece.color === 'w' && targetSquare[1] === '8') || (piece.color === 'b' && targetSquare[1] === '1'))) {
+    const moves = gameData.game.moves({ square: sourceSquare as any, verbose: true });
+    const isPromotion = moves.some(m => m.to === targetSquare && m.flags.includes('p'));
+    
+    if (isPromotion) {
       setShowPromotionDialog({ from: sourceSquare, to: targetSquare });
       return true;
     }
@@ -278,6 +280,15 @@ export default function ChessGame({ session, user }: ChessGameProps) {
         setMoveSquares({});
         return;
       }
+      const moves = gameData.game.moves({ square: selectedSquare as any, verbose: true });
+      const isPromotion = moves.some(m => m.to === square && m.flags.includes('p'));
+
+      if (isPromotion) {
+        setShowPromotionDialog({ from: selectedSquare, to: square });
+        setMoveSquares({});
+        return;
+      }
+
       const move = makeAMove({
         from: selectedSquare,
         to: square,
@@ -324,11 +335,14 @@ export default function ChessGame({ session, user }: ChessGameProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getPieceIcon = (piece: string, color: 'white' | 'black') => {
-    const icons: Record<string, string> = {
+  const getPieceIcon = (piece: string, color: 'w' | 'b') => {
+    const whiteIcons: Record<string, string> = {
+      P: '♙', R: '♖', N: '♘', B: '♗', Q: '♕', K: '♔'
+    };
+    const blackIcons: Record<string, string> = {
       P: '♟', R: '♜', N: '♞', B: '♝', Q: '♛', K: '♚'
     };
-    return icons[piece] || piece;
+    return (color === 'w' ? whiteIcons : blackIcons)[piece.toUpperCase()] || piece;
   };
 
   return (
@@ -629,7 +643,7 @@ export default function ChessGame({ session, user }: ChessGameProps) {
                 <p className="text-sm font-black text-[#2e1a16]">{opponent?.name}</p>
                 <div className="flex gap-1">
                   {capturedPieces[gameData.game.turn() === 'w' ? 'black' : 'white'].map((p, i) => (
-                    <span key={i} className="text-xs text-[#5d4037]">{getPieceIcon(p, 'black')}</span>
+                    <span key={i} className="text-xs text-[#5d4037]">{getPieceIcon(p, gameData.game.turn() === 'w' ? 'b' : 'w')}</span>
                   ))}
                 </div>
               </div>
@@ -666,15 +680,18 @@ export default function ChessGame({ session, user }: ChessGameProps) {
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   className="absolute inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
                 >
-                  <div className="bg-white p-6 rounded-2xl border-4 border-[#5d4037] shadow-2xl flex gap-4">
-                    {['Q', 'R', 'B', 'N'].map(p => (
-                      <button 
-                        key={p} onClick={() => handlePromotion(p)}
-                        className="w-16 h-16 bg-[#f4ece4] hover:bg-[#d2b48c] rounded-xl border-2 border-[#5d4037] text-4xl flex items-center justify-center transition-all"
-                      >
-                        {getPieceIcon(p, 'white')}
-                      </button>
-                    ))}
+                  <div className="bg-white p-6 rounded-2xl border-4 border-[#5d4037] shadow-2xl flex flex-col items-center gap-4">
+                    <h3 className="text-xl font-black text-[#2e1a16] uppercase tracking-tight">Promote Pawn</h3>
+                    <div className="flex gap-4">
+                      {['Q', 'R', 'B', 'N'].map(p => (
+                        <button 
+                          key={p} onClick={() => handlePromotion(p)}
+                          className="w-16 h-16 bg-[#f4ece4] hover:bg-[#d2b48c] rounded-xl border-2 border-[#5d4037] text-4xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                        >
+                          {getPieceIcon(p, gameData.game.turn())}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -736,7 +753,7 @@ export default function ChessGame({ session, user }: ChessGameProps) {
                 <p className="text-sm font-black text-[#2e1a16]">{user.name} (You)</p>
                 <div className="flex gap-1">
                   {capturedPieces[gameData.game.turn() === 'w' ? 'white' : 'black'].map((p, i) => (
-                    <span key={i} className="text-xs text-[#5d4037]">{getPieceIcon(p, 'white')}</span>
+                    <span key={i} className="text-xs text-[#5d4037]">{getPieceIcon(p, gameData.game.turn())}</span>
                   ))}
                 </div>
               </div>

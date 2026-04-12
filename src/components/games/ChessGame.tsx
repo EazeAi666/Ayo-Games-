@@ -274,6 +274,10 @@ export default function ChessGame({ session, user }: ChessGameProps) {
     const selectedSquare = Object.keys(moveSquares).find(s => moveSquares[s].backgroundColor === 'rgba(255, 255, 0, 0.4)');
     
     if (selectedSquare) {
+      if (selectedSquare === square) {
+        setMoveSquares({});
+        return;
+      }
       const move = makeAMove({
         from: selectedSquare,
         to: square,
@@ -477,27 +481,28 @@ export default function ChessGame({ session, user }: ChessGameProps) {
       </AnimatePresence>
 
       {/* Dr. Wolf Coach Section */}
-      <div className="max-w-2xl mx-auto w-full px-4 pt-4 sm:pt-8 pb-4">
-        <div className="flex flex-col items-center gap-4">
+      <div className="max-w-2xl mx-auto w-full px-4 pt-2 sm:pt-4 pb-2">
+        <div className="flex flex-col items-center gap-2 sm:gap-4">
           <div className="relative flex items-start gap-2 sm:gap-4 w-full">
             <div className="flex-shrink-0">
-              <div className="w-16 h-20 sm:w-24 sm:h-32 rounded-xl bg-[#d2b48c] border-2 border-[#5d4037] overflow-hidden shadow-lg">
+              <div className="w-12 h-16 sm:w-24 sm:h-32 rounded-xl bg-[#d2b48c] border-2 border-[#5d4037] overflow-hidden shadow-lg">
                 <img 
-                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=Wolf&backgroundColor=ffdfbf&mouth=smile&top=shortHair&hairColor=705c53" 
+                  src="https://api.dicebear.com/7.x/bottts/svg?seed=Wolf&backgroundColor=ffdfbf" 
                   alt="Coach Wolf"
                   className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
                 />
               </div>
             </div>
             
             <div className="flex-1 relative">
-              <div className="bg-white p-3 sm:p-6 rounded-2xl border-2 border-[#5d4037] shadow-md relative after:content-[''] after:absolute after:top-4 sm:after:top-6 after:-left-2 sm:after:-left-3 after:w-4 sm:after:w-6 after:h-4 sm:after:h-6 after:bg-white after:border-l-2 after:border-b-2 after:border-[#5d4037] after:rotate-45">
-                <p className="text-xs sm:text-lg md:text-xl text-[#2e1a16] italic leading-relaxed font-medium">
+              <div className="bg-white p-2 sm:p-6 rounded-2xl border-2 border-[#5d4037] shadow-md relative after:content-[''] after:absolute after:top-3 sm:after:top-6 after:-left-2 sm:after:-left-3 after:w-3 sm:after:w-6 after:h-3 sm:after:h-6 after:bg-white after:border-l-2 after:border-b-2 after:border-[#5d4037] after:rotate-45">
+                <p className="text-[10px] sm:text-lg md:text-xl text-[#2e1a16] italic leading-tight sm:leading-relaxed font-medium">
                   {isCoachThinking ? "Thinking..." : coachMessage}
                 </p>
               </div>
               
-              <div className="flex gap-2 mt-2 sm:mt-4">
+              <div className="flex gap-2 mt-1 sm:mt-4">
                 <Button 
                   variant="outline" 
                   size="icon"
@@ -634,7 +639,7 @@ export default function ChessGame({ session, user }: ChessGameProps) {
             </div>
           </div>
 
-          <div className="w-full aspect-square bg-[#d2b48c] rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-8 border-[#5d4037] p-1 relative">
+          <div className="w-full max-w-[450px] aspect-square bg-[#d2b48c] rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-8 border-[#5d4037] p-1 relative touch-none">
             {/* Turn Indicator Overlay (Local Play) */}
             {session.isLocal && (
               <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40 bg-white/90 backdrop-blur-sm px-4 py-1 rounded-full border border-[#5d4037]/20 shadow-sm flex items-center gap-2">
@@ -675,13 +680,14 @@ export default function ChessGame({ session, user }: ChessGameProps) {
               )}
             </AnimatePresence>
 
-            <div key={gameData.game.fen()} className="w-full h-full">
+            <div key={gameData.game.fen()} className="w-full h-full select-none">
               {activeTab === 'play' ? (
                 <Chessboard 
                   // @ts-ignore
                   position={gameData.game.fen()} 
                   onPieceDrop={onDrop} 
                   onSquareClick={onSquareClick}
+                  onSquareRightClick={() => setMoveSquares({})}
                   boardOrientation={boardOrientation}
                   customDarkSquareStyle={{ backgroundColor: boardTheme.dark }}
                   customLightSquareStyle={{ backgroundColor: boardTheme.light }}
@@ -694,6 +700,7 @@ export default function ChessGame({ session, user }: ChessGameProps) {
                     } : {})
                   }}
                   animationDuration={300}
+                  arePiecesDraggable={true}
                 />
               ) : activeTab === 'train' ? (
                 <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-white/80 backdrop-blur-sm">

@@ -160,66 +160,76 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
                 {setupGame.mode === 'ai' && (
                   <div className="space-y-3">
                     <Label className="text-zinc-400">AI Difficulty</Label>
-                    <RadioGroup value={difficulty} onValueChange={(v: Difficulty) => setDifficulty(v)} className="grid grid-cols-3 gap-2">
-                      {['easy', 'hard', 'very_hard'].map((d) => (
-                        <div key={d}>
-                          <RadioGroupItem value={d} id={d} className="peer sr-only" />
-                          <Label
-                            htmlFor={d}
-                            className="flex flex-col items-center justify-between rounded-md border-2 border-zinc-800 bg-zinc-900 p-2 hover:bg-zinc-800 peer-data-[state=checked]:border-orange-500 [&:has([data-state=checked])]:border-orange-500 cursor-pointer transition-all"
-                          >
-                            <span className="text-xs font-bold uppercase">{d.replace('_', ' ')}</span>
-                          </Label>
-                        </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['easy', 'hard', 'very_hard'] as Difficulty[]).map((d) => (
+                        <Button
+                          key={d}
+                          variant="outline"
+                          onClick={() => setDifficulty(d)}
+                          className={`h-12 border-2 transition-all capitalize font-bold ${
+                            difficulty === d 
+                              ? 'border-orange-500 bg-orange-500/10 text-orange-500' 
+                              : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+                          }`}
+                        >
+                          {d.replace('_', ' ')}
+                        </Button>
                       ))}
-                    </RadioGroup>
+                    </div>
                   </div>
                 )}
 
                 {setupGame.mode === 'local' && (setupGame.type === 'whot' || setupGame.type === 'ludo') && (
                   <div className="space-y-3">
                     <Label className="text-zinc-400">Number of Players</Label>
-                    <RadioGroup value={playerCount.toString()} onValueChange={(v) => setPlayerCount(parseInt(v))} className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       {[2, 3, 4].map((n) => (
-                        <div key={n}>
-                          <RadioGroupItem value={n.toString()} id={`players-${n}`} className="peer sr-only" />
-                          <Label
-                            htmlFor={`players-${n}`}
-                            className="flex flex-col items-center justify-between rounded-md border-2 border-zinc-800 bg-zinc-900 p-2 hover:bg-zinc-800 peer-data-[state=checked]:border-orange-500 [&:has([data-state=checked])]:border-orange-500 cursor-pointer transition-all"
-                          >
-                            <span className="text-xs font-bold uppercase">{n} Players</span>
-                          </Label>
-                        </div>
+                        <Button
+                          key={n}
+                          variant="outline"
+                          onClick={() => setPlayerCount(n)}
+                          className={`h-12 border-2 transition-all font-bold ${
+                            playerCount === n 
+                              ? 'border-orange-500 bg-orange-500/10 text-orange-500' 
+                              : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+                          }`}
+                        >
+                          {n} Players
+                        </Button>
                       ))}
-                    </RadioGroup>
+                    </div>
                   </div>
                 )}
 
                 {setupGame.type === 'chess' && (
                   <div className="space-y-3">
                     <Label className="text-zinc-400">Your Color</Label>
-                    <RadioGroup value={chessColor} onValueChange={(v: 'white' | 'black') => setChessColor(v)} className="grid grid-cols-2 gap-4">
-                      <div>
-                        <RadioGroupItem value="white" id="white" className="peer sr-only" />
-                        <Label
-                          htmlFor="white"
-                          className="flex items-center gap-3 rounded-md border-2 border-zinc-800 bg-zinc-900 p-3 hover:bg-zinc-800 peer-data-[state=checked]:border-orange-500 [&:has([data-state=checked])]:border-orange-500 cursor-pointer transition-all"
-                        >
-                          <div className="w-6 h-6 rounded-full bg-white border border-zinc-300" />
-                          <span className="font-bold">White</span>
-                        </Label>
-                      </div>
-                      <div>
-                        <RadioGroupItem value="black" id="black" className="peer sr-only" />
-                        <Label
-                          htmlFor="black"
-                          className="flex items-center gap-3 rounded-md border-2 border-zinc-800 bg-zinc-900 p-3 hover:bg-zinc-800 peer-data-[state=checked]:border-orange-500 [&:has([data-state=checked])]:border-orange-500 cursor-pointer transition-all"
-                        >
-                          <div className="w-6 h-6 rounded-full bg-black border border-zinc-700" />
-                          <span className="font-bold">Black</span>
-                        </Label>
-                      </div>
-                    </RadioGroup>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setChessColor('white')}
+                        className={`h-16 border-2 transition-all flex items-center gap-3 px-4 ${
+                          chessColor === 'white' 
+                            ? 'border-orange-500 bg-orange-500/10' 
+                            : 'border-zinc-800 bg-zinc-900'
+                        }`}
+                      >
+                        <div className="w-6 h-6 rounded-full bg-white border border-zinc-300 shadow-sm" />
+                        <span className={`font-bold ${chessColor === 'white' ? 'text-orange-500' : 'text-zinc-400'}`}>White</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setChessColor('black')}
+                        className={`h-16 border-2 transition-all flex items-center gap-3 px-4 ${
+                          chessColor === 'black' 
+                            ? 'border-orange-500 bg-orange-500/10' 
+                            : 'border-zinc-800 bg-zinc-900'
+                        }`}
+                      >
+                        <div className="w-6 h-6 rounded-full bg-black border border-zinc-700 shadow-sm" />
+                        <span className={`font-bold ${chessColor === 'black' ? 'text-orange-500' : 'text-zinc-400'}`}>Black</span>
+                      </Button>
+                    </div>
                   </div>
                 )}
 

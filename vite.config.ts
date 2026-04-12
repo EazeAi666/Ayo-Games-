@@ -6,10 +6,10 @@ import {defineConfig, loadEnv} from 'vite';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: process.env.GITHUB_PAGES === 'true' ? '/ayo-games/' : '/', // Replace 'ayo-games' with your repo name if different
+    base: process.env.GITHUB_PAGES === 'true' ? '/Ayo-Games-/' : '/', 
     plugins: [react(), tailwindcss()],
     define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
     },
     resolve: {
       alias: {

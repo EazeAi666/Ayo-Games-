@@ -145,6 +145,22 @@ class GameService {
     this.sessions[id] = updatedSession;
     this.save();
 
+    // Update global stats
+    const statsStr = localStorage.getItem('ayo_stats');
+    const stats = statsStr ? JSON.parse(statsStr) : {};
+
+    session.players.forEach(p => {
+      if (!stats[p.id]) {
+        stats[p.id] = { name: p.name, avatar: p.avatar, wins: 0, losses: 0 };
+      }
+      if (p.id === winnerId) {
+        stats[p.id].wins += 1;
+      } else {
+        stats[p.id].losses += 1;
+      }
+    });
+    localStorage.setItem('ayo_stats', JSON.stringify(stats));
+
     // Update local user stats if they are in the game
     const savedUser = localStorage.getItem('ayo_user');
     if (savedUser) {
@@ -160,6 +176,15 @@ class GameService {
     }
 
     window.dispatchEvent(new CustomEvent(`game_update_${id}`, { detail: updatedSession }));
+  }
+
+  async getLeaderboard(): Promise<any[]> {
+    const statsStr = localStorage.getItem('ayo_stats');
+    if (!statsStr) return [];
+    const stats = JSON.parse(statsStr);
+    return Object.entries(stats)
+      .map(([id, data]: [string, any]) => ({ id, ...data }))
+      .sort((a, b) => b.wins - a.wins);
   }
 
   private getInitialState(type: GameType) {

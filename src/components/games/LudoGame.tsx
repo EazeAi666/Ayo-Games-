@@ -92,6 +92,36 @@ const Dice = ({ value, rolling, onClick, disabled }: { value: number; rolling: b
   );
 };
 
+const Token = ({ color, isCurrentTurn, onClick, isMoving }: { color: string; isCurrentTurn: boolean; onClick: () => void; isMoving?: boolean }) => (
+  <motion.div
+    whileHover={{ scale: 1.1, y: -2 }}
+    whileTap={{ scale: 0.9 }}
+    onClick={onClick}
+    animate={isCurrentTurn && !isMoving ? { 
+      y: [0, -8, 0],
+      scale: [1, 1.05, 1],
+      filter: ["brightness(1)", "brightness(1.2)", "brightness(1)"]
+    } : { y: 0, scale: 1 }}
+    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+    className={`relative w-full h-full cursor-pointer flex items-center justify-center z-30 ${isCurrentTurn ? 'drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]' : 'drop-shadow-lg'}`}
+  >
+    {/* 3D Pawn Body */}
+    <div className="absolute inset-0 rounded-full shadow-[inset_-4px_-4px_8px_rgba(0,0,0,0.4),inset_4px_4px_8px_rgba(255,255,255,0.4)]" style={{ backgroundColor: color }} />
+    
+    {/* Shine/Highlight */}
+    <div className="absolute top-[10%] left-[20%] w-[30%] h-[30%] bg-white/40 rounded-full blur-[1px]" />
+    
+    {/* Inner Ring */}
+    <div className="absolute inset-[20%] rounded-full border-2 border-white/20 shadow-inner" />
+    
+    {/* Top Cap */}
+    <div className="absolute inset-[35%] rounded-full bg-white/10 border border-white/30 shadow-sm" />
+
+    {/* Base Shadow (on board) */}
+    <div className="absolute -bottom-2 w-[90%] h-[20%] bg-black/30 rounded-full blur-md -z-10" />
+  </motion.div>
+);
+
 export default function LudoGame({ session, user }: LudoGameProps) {
   const gameState = session.state as LudoState;
   const [isRolling, setIsRolling] = useState(false);
@@ -99,6 +129,9 @@ export default function LudoGame({ session, user }: LudoGameProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [usedDice, setUsedDice] = useState<boolean[]>([false, false]);
+  const [selectedDieIdx, setSelectedDieIdx] = useState<number | null>(null);
+  const [animatingToken, setAnimatingToken] = useState<{playerId: string, tokenIndex: number, currentStep: number} | null>(null);
+  const [isMoving, setIsMoving] = useState(false);
 
   const addLog = (msg: string) => {
     setGameLog(prev => [msg, ...prev].slice(0, 50));
@@ -175,20 +208,22 @@ export default function LudoGame({ session, user }: LudoGameProps) {
     }
   };
 
-  const moveToken = (tokenIndex: number, playerId: string = user.id, dieIdx?: number) => {
-    if (session.currentTurn !== playerId || gameState.canRoll) return;
+  const moveToken = async (tokenIndex: number, playerId: string = user.id, dieIdx?: number) => {
+    if (session.currentTurn !== playerId || gameState.canRoll || isMoving) return;
 
     const currentPos = gameState.positions[playerId][tokenIndex];
     const diceValues = gameState.diceValues || [0, 0];
     
-    // If dieIdx is provided, use that specific die. Otherwise try to use sum or first available.
+    // Use selected die if available
+    const targetDieIdx = dieIdx !== undefined ? dieIdx : selectedDieIdx;
+    
     let moveAmount = 0;
     let usedIndices: number[] = [];
 
-    if (dieIdx !== undefined) {
-      if (usedDice[dieIdx]) return;
-      moveAmount = diceValues[dieIdx];
-      usedIndices = [dieIdx];
+    if (targetDieIdx !== null) {
+      if (usedDice[targetDieIdx]) return;
+      moveAmount = diceValues[targetDieIdx];
+      usedIndices = [targetDieIdx];
     } else {
       // Auto-select logic for simple clicks
       const availableIndices = usedDice.map((u, i) => u ? -1 : i).filter(i => i !== -1);
@@ -219,29 +254,52 @@ export default function LudoGame({ session, user }: LudoGameProps) {
       }
     }
 
-    let newPos = currentPos;
+    setIsMoving(true);
     const playerName = session.players.find(p => p.id === playerId)?.name || 'Player';
 
+    // Step-by-step animation
     if (currentPos === -1) {
-      // Must use a 6 to get out
+      // Getting out of base
+      setAnimatingToken({ playerId, tokenIndex, currentStep: -1 });
+      await new Promise(r => setTimeout(r, 300));
+      setAnimatingToken({ playerId, tokenIndex, currentStep: 0 });
+      await new Promise(r => setTimeout(r, 300));
+      
+      if (usedIndices.length === 2) {
+        const sixIdx = usedIndices.find(i => diceValues[i] === 6)!;
+        const otherDieIdx = usedIndices.find(i => i !== sixIdx)!;
+        const extraSteps = diceValues[otherDieIdx];
+        for (let s = 1; s <= extraSteps; s++) {
+          setAnimatingToken({ playerId, tokenIndex, currentStep: s });
+          await new Promise(r => setTimeout(r, 150));
+        }
+      }
+    } else {
+      for (let s = 1; s <= moveAmount; s++) {
+        setAnimatingToken({ playerId, tokenIndex, currentStep: currentPos + s });
+        await new Promise(r => setTimeout(r, 150));
+      }
+    }
+
+    let newPos = currentPos;
+    if (currentPos === -1) {
       const sixIdx = usedIndices.find(i => diceValues[i] === 6);
       if (sixIdx !== undefined) {
         newPos = 0;
-        // If we used both dice and one was 6, the other die moves the piece forward from 0
         if (usedIndices.length === 2) {
           const otherDieIdx = usedIndices.find(i => i !== sixIdx)!;
           newPos = diceValues[otherDieIdx];
         }
         addLog(`${playerName} moved Token ${tokenIndex + 1} out of base!`);
-      } else {
-        return; // Can't get out without a 6
       }
-    } else if (currentPos >= 0 && currentPos + moveAmount <= 57) {
+    } else {
       newPos = currentPos + moveAmount;
       addLog(`${playerName} moved Token ${tokenIndex + 1} forward ${moveAmount} steps`);
-    } else {
-      return; // Invalid move
     }
+
+    setAnimatingToken(null);
+    setIsMoving(false);
+    setSelectedDieIdx(null);
 
     // Update used dice
     const newUsedDice = [...usedDice];
@@ -518,9 +576,11 @@ export default function LudoGame({ session, user }: LudoGameProps) {
       </div>
 
       {/* Professional Ludo Board */}
-      <div className="w-full max-w-[700px] aspect-square bg-[#f5e6d3] rounded-2xl border-[12px] border-[#5d4037] p-2 relative grid grid-cols-15 grid-rows-15 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden" style={{
+      <div className="w-full max-w-[700px] aspect-square bg-[#f5e6d3] rounded-2xl border-[12px] border-[#5d4037] p-2 relative grid grid-cols-15 grid-rows-15 shadow-[0_40px_80px_rgba(0,0,0,0.6)] overflow-hidden transition-transform duration-700" style={{
         backgroundImage: 'url("https://www.transparenttextures.com/patterns/wood-pattern.png")',
-        backgroundColor: '#f5e6d3'
+        backgroundColor: '#f5e6d3',
+        transform: 'perspective(1000px) rotateX(5deg)',
+        transformStyle: 'preserve-3d'
       }}>
         {/* Decorative Corner Screws */}
         <div className="absolute top-2 left-2 w-4 h-4 bg-zinc-400 rounded-full border-2 border-zinc-600 shadow-inner z-50" />
@@ -539,12 +599,12 @@ export default function LudoGame({ session, user }: LudoGameProps) {
             {[0, 1, 2, 3].map(i => (
               <div key={i} className="bg-green-50 rounded-full border-2 sm:border-4 border-green-600 flex items-center justify-center shadow-inner relative overflow-hidden">
                 <div className="absolute inset-0 bg-green-600/10" />
-                {gameState.positions[session.players[0]?.id]?.[i] === -1 && (
-                  <motion.div 
-                    layoutId={`token-0-${i}`}
-                    whileHover={{ scale: 1.2 }}
+                {(gameState.positions[session.players[0]?.id]?.[i] === -1 && (!animatingToken || animatingToken.playerId !== session.players[0]?.id || animatingToken.tokenIndex !== i)) && (
+                  <Token 
+                    color={COLORS[0]}
+                    isCurrentTurn={canIPlay && session.currentTurn === session.players[0]?.id}
                     onClick={() => canIPlay && session.currentTurn === session.players[0]?.id && moveToken(i, session.players[0]?.id)}
-                    className="w-full h-full rounded-full bg-green-600 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.3)] sm:shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border sm:border-2 border-white/20 cursor-pointer z-10" 
+                    isMoving={isMoving}
                   />
                 )}
               </div>
@@ -561,12 +621,12 @@ export default function LudoGame({ session, user }: LudoGameProps) {
             {[0, 1, 2, 3].map(i => (
               <div key={i} className="bg-yellow-50 rounded-full border-2 sm:border-4 border-yellow-500 flex items-center justify-center shadow-inner relative overflow-hidden">
                 <div className="absolute inset-0 bg-yellow-500/10" />
-                {gameState.positions[session.players[3]?.id]?.[i] === -1 && (
-                  <motion.div 
-                    layoutId={`token-3-${i}`}
-                    whileHover={{ scale: 1.2 }}
+                {(gameState.positions[session.players[3]?.id]?.[i] === -1 && (!animatingToken || animatingToken.playerId !== session.players[3]?.id || animatingToken.tokenIndex !== i)) && (
+                  <Token 
+                    color={COLORS[3]}
+                    isCurrentTurn={canIPlay && session.currentTurn === session.players[3]?.id}
                     onClick={() => canIPlay && session.currentTurn === session.players[3]?.id && moveToken(i, session.players[3]?.id)}
-                    className="w-full h-full rounded-full bg-yellow-500 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.3)] sm:shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border sm:border-2 border-white/20 cursor-pointer z-10" 
+                    isMoving={isMoving}
                   />
                 )}
               </div>
@@ -583,12 +643,12 @@ export default function LudoGame({ session, user }: LudoGameProps) {
             {[0, 1, 2, 3].map(i => (
               <div key={i} className="bg-red-50 rounded-full border-2 sm:border-4 border-red-600 flex items-center justify-center shadow-inner relative overflow-hidden">
                 <div className="absolute inset-0 bg-red-600/10" />
-                {gameState.positions[session.players[2]?.id]?.[i] === -1 && (
-                  <motion.div 
-                    layoutId={`token-2-${i}`}
-                    whileHover={{ scale: 1.2 }}
+                {(gameState.positions[session.players[2]?.id]?.[i] === -1 && (!animatingToken || animatingToken.playerId !== session.players[2]?.id || animatingToken.tokenIndex !== i)) && (
+                  <Token 
+                    color={COLORS[2]}
+                    isCurrentTurn={canIPlay && session.currentTurn === session.players[2]?.id}
                     onClick={() => canIPlay && session.currentTurn === session.players[2]?.id && moveToken(i, session.players[2]?.id)}
-                    className="w-full h-full rounded-full bg-red-600 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.3)] sm:shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border sm:border-2 border-white/20 cursor-pointer z-10" 
+                    isMoving={isMoving}
                   />
                 )}
               </div>
@@ -605,12 +665,12 @@ export default function LudoGame({ session, user }: LudoGameProps) {
             {[0, 1, 2, 3].map(i => (
               <div key={i} className="bg-blue-50 rounded-full border-2 sm:border-4 border-blue-600 flex items-center justify-center shadow-inner relative overflow-hidden">
                 <div className="absolute inset-0 bg-blue-600/10" />
-                {gameState.positions[session.players[1]?.id]?.[i] === -1 && (
-                  <motion.div 
-                    layoutId={`token-1-${i}`}
-                    whileHover={{ scale: 1.2 }}
+                {(gameState.positions[session.players[1]?.id]?.[i] === -1 && (!animatingToken || animatingToken.playerId !== session.players[1]?.id || animatingToken.tokenIndex !== i)) && (
+                  <Token 
+                    color={COLORS[1]}
+                    isCurrentTurn={canIPlay && session.currentTurn === session.players[1]?.id}
                     onClick={() => canIPlay && session.currentTurn === session.players[1]?.id && moveToken(i, session.players[1]?.id)}
-                    className="w-full h-full rounded-full bg-blue-600 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.3)] sm:shadow-[inset_0_-4px_8px_rgba(0,0,0,0.3)] border sm:border-2 border-white/20 cursor-pointer z-10" 
+                    isMoving={isMoving}
                   />
                 )}
               </div>
@@ -629,17 +689,23 @@ export default function LudoGame({ session, user }: LudoGameProps) {
               <div className="absolute bottom-0 left-0 w-0 h-0 border-b-[45px] border-b-green-500 border-r-[45px] border-r-transparent border-t-[45px] border-t-transparent" />
             </div>
             {/* Two Dice in Center */}
-            <div className="absolute inset-0 flex items-center justify-center gap-1 sm:gap-4 pointer-events-auto scale-50 sm:scale-100">
+            <div className="absolute inset-0 flex items-center justify-center gap-1 sm:gap-4 pointer-events-auto scale-50 sm:scale-100" style={{ transform: 'translateZ(20px)' }}>
               <Dice 
                 value={gameState.diceValues?.[0] || 1} 
                 rolling={isRolling} 
-                onClick={() => rollDice(session.currentTurn)}
+                onClick={() => {
+                  if (gameState.canRoll) rollDice(session.currentTurn);
+                  else if (!usedDice[0]) setSelectedDieIdx(selectedDieIdx === 0 ? null : 0);
+                }}
                 disabled={!canIPlay || (!gameState.canRoll && usedDice[0])}
               />
               <Dice 
                 value={gameState.diceValues?.[1] || 1} 
                 rolling={isRolling} 
-                onClick={() => rollDice(session.currentTurn)}
+                onClick={() => {
+                  if (gameState.canRoll) rollDice(session.currentTurn);
+                  else if (!usedDice[1]) setSelectedDieIdx(selectedDieIdx === 1 ? null : 1);
+                }}
                 disabled={!canIPlay || (!gameState.canRoll && usedDice[1])}
               />
             </div>
@@ -705,31 +771,34 @@ export default function LudoGame({ session, user }: LudoGameProps) {
           {Object.entries(gameState.positions).map(([pid, tokens]) => {
             const playerIdx = session.players.findIndex(p => p.id === pid);
             return tokens.map((pos, i) => {
-              if (pos === -1 || pos === 57) return null;
-              const coords = getCoords(pos, playerIdx);
+              const isAnimating = animatingToken?.playerId === pid && animatingToken?.tokenIndex === i;
+              const displayPos = isAnimating ? animatingToken.currentStep : pos;
+
+              if (displayPos === -1 || displayPos === 57) return null;
+              const coords = getCoords(displayPos, playerIdx);
               if (!coords) return null;
               
               const isCurrentTurnToken = session.currentTurn === pid;
               
               return (
-                <motion.div
+                <div
                   key={`${pid}-${i}`}
-                  layoutId={`token-${playerIdx}-${i}`}
-                  onClick={() => canIPlay && isCurrentTurnToken && moveToken(i, pid)}
-                  animate={isCurrentTurnToken && !gameState.canRoll ? { scale: [1, 1.2, 1], y: [0, -5, 0] } : { scale: 1, y: 0 }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                  className={`absolute w-8 h-8 rounded-full border-2 border-white/50 shadow-xl z-30 flex items-center justify-center cursor-pointer ${isCurrentTurnToken ? 'ring-4 ring-white/30' : ''}`}
+                  className="absolute z-30 flex items-center justify-center transition-all duration-150 ease-out"
                   style={{
-                    backgroundColor: COLORS[playerIdx],
                     gridColumnStart: coords.col + 1,
                     gridRowStart: coords.row + 1,
-                    width: '100%',
-                    height: '100%',
-                    padding: '15%'
+                    width: '6.66%',
+                    height: '6.66%',
+                    padding: '0.5%'
                   }}
                 >
-                  <div className="w-full h-full rounded-full bg-white/20 border border-white/10" />
-                </motion.div>
+                  <Token 
+                    color={COLORS[playerIdx]}
+                    isCurrentTurn={canIPlay && isCurrentTurnToken}
+                    onClick={() => canIPlay && isCurrentTurnToken && moveToken(i, pid)}
+                    isMoving={isMoving}
+                  />
+                </div>
               );
             });
           })}
@@ -744,7 +813,8 @@ export default function LudoGame({ session, user }: LudoGameProps) {
               key={i}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className={`w-16 h-16 rounded-full border-4 border-white flex items-center justify-center text-white font-black text-2xl shadow-lg relative ${usedDice[i] ? 'opacity-50 grayscale' : ''}`}
+              onClick={() => !usedDice[i] && setSelectedDieIdx(selectedDieIdx === i ? null : i)}
+              className={`w-16 h-16 rounded-full border-4 flex items-center justify-center text-white font-black text-2xl shadow-lg relative cursor-pointer transition-all ${usedDice[i] ? 'opacity-50 grayscale border-zinc-400' : selectedDieIdx === i ? 'border-white scale-110 ring-4 ring-white/50' : 'border-white/30'}`}
               style={{ backgroundColor: COLORS[session.players.findIndex(p => p.id === session.currentTurn)] || '#5d4037' }}
             >
               {val}

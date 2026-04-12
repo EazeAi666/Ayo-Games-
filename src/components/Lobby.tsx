@@ -18,6 +18,7 @@ interface LobbyProps {
 
 export default function Lobby({ user, onJoinGame }: LobbyProps) {
   const [activeGames, setActiveGames] = useState<GameSession[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [setupGame, setSetupGame] = useState<{ type: GameType; mode: 'ai' | 'local' | 'online' } | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('hard');
@@ -31,9 +32,17 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
       const games = await gameService.getActiveGames();
       setActiveGames(games);
     };
+    const fetchLeaderboard = async () => {
+      const stats = await gameService.getLeaderboard();
+      setLeaderboard(stats);
+    };
     fetchGames();
+    fetchLeaderboard();
     
-    const interval = setInterval(fetchGames, 3000);
+    const interval = setInterval(() => {
+      fetchGames();
+      fetchLeaderboard();
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -288,6 +297,79 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
               </CardContent>
             </Card>
           ))}
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Trophy className="text-orange-500" /> Player Statistics
+          </h2>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-zinc-800/50 border-b border-zinc-800">
+                  <th className="px-6 py-4 text-xs font-black text-zinc-500 uppercase tracking-widest">Player</th>
+                  <th className="px-6 py-4 text-xs font-black text-zinc-500 uppercase tracking-widest text-center">Wins</th>
+                  <th className="px-6 py-4 text-xs font-black text-zinc-500 uppercase tracking-widest text-center">Losses</th>
+                  <th className="px-6 py-4 text-xs font-black text-zinc-500 uppercase tracking-widest text-center">Win Rate</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {leaderboard.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12 text-center text-zinc-500 italic">
+                      No statistics available yet. Play some games to see the leaderboard!
+                    </td>
+                  </tr>
+                ) : (
+                  leaderboard.map((player, index) => {
+                    const totalGames = player.wins + player.losses;
+                    const winRate = totalGames > 0 ? Math.round((player.wins / totalGames) * 100) : 0;
+                    return (
+                      <motion.tr 
+                        key={player.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="hover:bg-white/5 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <img src={player.avatar} className="w-10 h-10 rounded-full border-2 border-zinc-700" alt={player.name} />
+                              {index < 3 && (
+                                <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-[10px] font-bold text-white border-2 border-zinc-900">
+                                  {index + 1}
+                                </div>
+                              )}
+                            </div>
+                            <span className="font-bold text-white">{player.name}</span>
+                            {player.id === user.id && <Badge className="bg-orange-500/20 text-orange-500 border-orange-500/50">You</Badge>}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center font-bold text-green-500">{player.wins}</td>
+                        <td className="px-6 py-4 text-center font-bold text-red-500">{player.losses}</td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="font-bold text-white">{winRate}%</span>
+                            <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-orange-500" 
+                                style={{ width: `${winRate}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 

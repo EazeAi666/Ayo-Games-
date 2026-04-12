@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "Player": {
+      "title": "Player",
+      "description": "User profile and statistics",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "avatar": { "type": "string" },
+        "wins": { "type": "number" },
+        "losses": { "type": "number" },
+        "lastActive": { "type": "number" }
+      },
+      "required": ["id", "name"]
+    },
+    "GameSession": {
+      "title": "GameSession",
+      "description": "Active or finished game session",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["chess", "whot", "ludo", "ayo"] },
+        "status": { "type": "string", "enum": ["waiting", "playing", "finished"] },
+        "players": { "type": "array" },
+        "currentTurn": { "type": "string" },
+        "state": { "type": "object" },
+        "winner": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "isAI": { "type": "boolean" },
+        "isLocal": { "type": "boolean" },
+        "difficulty": { "type": "string" }
+      },
+      "required": ["id", "type", "status", "players", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "Player",
+      "description": "User profiles"
+    },
+    "/games/{gameId}": {
+      "schema": "GameSession",
+      "description": "Game sessions"
+    }
+  }
+}

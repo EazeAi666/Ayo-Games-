@@ -21,6 +21,7 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [setupGame, setSetupGame] = useState<{ type: GameType; mode: 'ai' | 'local' | 'online' } | null>(null);
+  const [resumePrompt, setResumePrompt] = useState<{ type: GameType; mode: 'ai' | 'local' | 'online'; session: GameSession } | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('hard');
   const [chessColor, setChessColor] = useState<'white' | 'black'>('white');
   const [playerCount, setPlayerCount] = useState<number>(2);
@@ -70,6 +71,16 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
     } finally {
       setIsCreating(false);
       setSetupGame(null);
+    }
+  };
+
+  const checkResume = async (type: GameType, mode: 'ai' | 'local' | 'online') => {
+    const existing = await gameService.getResumeableGame(user.id, type);
+    // Only prompt resume for AI or Local games for now, as Online games depend on other players
+    if (existing && (mode === 'ai' || mode === 'local')) {
+      setResumePrompt({ type, mode, session: existing });
+    } else {
+      setSetupGame({ type, mode });
     }
   };
 
@@ -145,6 +156,63 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
           </div>
         </div>
       </section>
+
+      {/* Resume Prompt Modal */}
+      <AnimatePresence>
+        {resumePrompt && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full shadow-2xl text-center"
+            >
+              <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <PlayCircle className="text-orange-500 w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Continue Game?</h2>
+              <p className="text-zinc-400 mb-8">
+                You have an unfinished {resumePrompt.type} game. Would you like to continue from where you left off or start a new one?
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                <Button 
+                  onClick={() => {
+                    onJoinGame(resumePrompt.session);
+                    setResumePrompt(null);
+                  }}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold h-12"
+                >
+                  Continue Game
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    gameService.deleteSession(resumePrompt.session.id);
+                    setSetupGame({ type: resumePrompt.type, mode: resumePrompt.mode });
+                    setResumePrompt(null);
+                  }}
+                  className="w-full border-zinc-800 hover:bg-zinc-800 text-white h-12"
+                >
+                  Start New Game
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setResumePrompt(null)}
+                  className="w-full text-zinc-500"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Game Setup Modal Overlay */}
       <AnimatePresence>
@@ -270,7 +338,7 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button 
-                  onClick={() => setSetupGame({ type: game.type, mode: 'online' })} 
+                  onClick={() => checkResume(game.type, 'online')} 
                   disabled={isCreating}
                   className="w-full bg-orange-500 hover:bg-orange-600 text-white border-none"
                 >
@@ -279,7 +347,7 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
                 <div className="grid grid-cols-2 gap-2">
                   <Button 
                     variant="outline"
-                    onClick={() => setSetupGame({ type: game.type, mode: 'ai' })} 
+                    onClick={() => checkResume(game.type, 'ai')} 
                     disabled={isCreating}
                     className="border-zinc-700 hover:bg-zinc-800 text-xs"
                   >
@@ -287,7 +355,7 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={() => setSetupGame({ type: game.type, mode: 'local' })} 
+                    onClick={() => checkResume(game.type, 'local')} 
                     disabled={isCreating}
                     className="border-zinc-700 hover:bg-zinc-800 text-xs"
                   >

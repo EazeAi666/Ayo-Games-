@@ -1,21 +1,24 @@
 import { GameSession, GameType, Player, Difficulty } from '../types';
-
-// Mocking Firebase for now due to setup issues
-// This service will handle game creation, joining, and state updates
+import { db } from '../lib/firebase';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  getDocs, 
+  updateDoc, 
+  onSnapshot, 
+  query, 
+  where, 
+  orderBy, 
+  limit,
+  serverTimestamp,
+  deleteDoc
+} from 'firebase/firestore';
 
 class GameService {
-  private sessions: Record<string, GameSession> = {};
-
-  constructor() {
-    const saved = localStorage.getItem('ayo_games_sessions');
-    if (saved) {
-      this.sessions = JSON.parse(saved);
-    }
-  }
-
-  private save() {
-    localStorage.setItem('ayo_games_sessions', JSON.stringify(this.sessions));
-  }
+  private sessionsCollection = collection(db, 'games');
+  private usersCollection = collection(db, 'users');
 
   async createGame(type: GameType, host: Player): Promise<GameSession> {
     const id = Math.random().toString(36).substring(2, 9);
@@ -28,8 +31,8 @@ class GameService {
       state: this.getInitialState(type),
       createdAt: Date.now(),
     };
-    this.sessions[id] = session;
-    this.save();
+    
+    await setDoc(doc(this.sessionsCollection, id), session);
     return session;
   }
 
@@ -46,14 +49,14 @@ class GameService {
       type,
       status: 'playing',
       players: [host, aiPlayer],
-      currentTurn: host.color === 'black' ? 'ai_bot' : host.id, // White always starts in Chess
+      currentTurn: host.color === 'black' ? 'ai_bot' : host.id,
       state: this.getInitialState(type),
       createdAt: Date.now(),
       isAI: true,
       difficulty,
     };
-    this.sessions[id] = session;
-    this.save();
+    
+    await setDoc(doc(this.sessionsCollection, id), session);
     return session;
   }
 
@@ -79,89 +82,91 @@ class GameService {
       createdAt: Date.now(),
       isLocal: true,
     };
-    this.sessions[id] = session;
-    this.save();
+    
+    await setDoc(doc(this.sessionsCollection, id), session);
     return session;
   }
 
   async joinGame(id: string, player: Player): Promise<GameSession> {
-    const session = this.sessions[id];
-    if (!session) throw new Error('Game not found');
+    const docRef = doc(this.sessionsCollection, id);
+    const snap = await getDoc(docRef);
+    
+    if (!snap.exists()) throw new Error('Game not found');
+    const session = snap.data() as GameSession;
+    
     if (session.players.length >= this.getMaxPlayers(session.type)) {
       throw new Error('Game is full');
     }
+    
     if (!session.players.find(p => p.id === player.id)) {
-      session.players.push(player);
-      if (session.players.length === this.getMaxPlayers(session.type)) {
-        session.status = 'playing';
+      const updatedPlayers = [...session.players, player];
+      const updates: any = { players: updatedPlayers };
+      
+      if (updatedPlayers.length === this.getMaxPlayers(session.type)) {
+        updates.status = 'playing';
       }
-      this.save();
+      
+      await updateDoc(docRef, updates);
+      return { ...session, ...updates };
     }
+    
     return session;
   }
 
   async updateGameState(id: string, newState: any, nextTurn?: string): Promise<void> {
-    const session = this.sessions[id];
-    if (!session) return;
+    const docRef = doc(this.sessionsCollection, id);
+    const updates: any = { state: newState };
+    if (nextTurn) updates.currentTurn = nextTurn;
     
-    // Create new session object to trigger React updates
-    const updatedSession = {
-      ...session,
-      state: newState,
-      currentTurn: nextTurn || session.currentTurn
-    };
-    
-    this.sessions[id] = updatedSession;
-    this.save();
-    
-    window.dispatchEvent(new CustomEvent(`game_update_${id}`, { detail: updatedSession }));
+    await updateDoc(docRef, updates);
   }
 
   async updateSession(id: string, updates: Partial<GameSession>): Promise<void> {
-    const session = this.sessions[id];
-    if (!session) return;
-
-    const updatedSession = {
-      ...session,
-      ...updates
-    };
-
-    this.sessions[id] = updatedSession;
-    this.save();
-
-    window.dispatchEvent(new CustomEvent(`game_update_${id}`, { detail: updatedSession }));
+    const docRef = doc(this.sessionsCollection, id);
+    await updateDoc(docRef, updates);
   }
 
   async completeGame(id: string, winnerId: string): Promise<void> {
-    const session = this.sessions[id];
-    if (!session || session.status === 'finished') return;
+    const docRef = doc(this.sessionsCollection, id);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return;
+    const session = snap.data() as GameSession;
+    
+    if (session.status === 'finished') return;
 
-    const updatedSession: GameSession = {
-      ...session,
+    await updateDoc(docRef, {
       status: 'finished',
       winner: winnerId
-    };
-
-    this.sessions[id] = updatedSession;
-    this.save();
-
-    // Update global stats
-    const statsStr = localStorage.getItem('ayo_stats');
-    const stats = statsStr ? JSON.parse(statsStr) : {};
-
-    session.players.forEach(p => {
-      if (!stats[p.id]) {
-        stats[p.id] = { name: p.name, avatar: p.avatar, wins: 0, losses: 0 };
-      }
-      if (p.id === winnerId) {
-        stats[p.id].wins += 1;
-      } else {
-        stats[p.id].losses += 1;
-      }
     });
-    localStorage.setItem('ayo_stats', JSON.stringify(stats));
 
-    // Update local user stats if they are in the game
+    // Update global stats in Firestore
+    for (const p of session.players) {
+      if (p.id.startsWith('ai_') || p.id.startsWith('local_')) continue;
+      
+      const userRef = doc(this.usersCollection, p.id);
+      const userSnap = await getDoc(userRef);
+      const isWinner = p.id === winnerId;
+      
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        await updateDoc(userRef, {
+          wins: (userData.wins || 0) + (isWinner ? 1 : 0),
+          losses: (userData.losses || 0) + (isWinner ? 0 : 1),
+          lastActive: Date.now()
+        });
+      } else {
+        await setDoc(userRef, {
+          id: p.id,
+          name: p.name,
+          avatar: p.avatar,
+          wins: isWinner ? 1 : 0,
+          losses: isWinner ? 0 : 1,
+          lastActive: Date.now()
+        });
+      }
+    }
+
+    // Update local user stats cache
     const savedUser = localStorage.getItem('ayo_user');
     if (savedUser) {
       const user: Player = JSON.parse(savedUser);
@@ -174,17 +179,12 @@ class GameService {
         localStorage.setItem('ayo_user', JSON.stringify(user));
       }
     }
-
-    window.dispatchEvent(new CustomEvent(`game_update_${id}`, { detail: updatedSession }));
   }
 
   async getLeaderboard(): Promise<any[]> {
-    const statsStr = localStorage.getItem('ayo_stats');
-    if (!statsStr) return [];
-    const stats = JSON.parse(statsStr);
-    return Object.entries(stats)
-      .map(([id, data]: [string, any]) => ({ id, ...data }))
-      .sort((a, b) => b.wins - a.wins);
+    const q = query(this.usersCollection, orderBy('wins', 'desc'), limit(10));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => doc.data());
   }
 
   private getInitialState(type: GameType) {
@@ -194,7 +194,7 @@ class GameService {
       case 'whot':
         return { deck: [], discardPile: [], playerHands: {} };
       case 'ludo':
-        return { positions: {}, diceValue: 0, canRoll: true };
+        return { positions: {}, diceValues: [0, 0], canRoll: true, usedDice: [false, false] };
       case 'ayo':
         return { pits: Array(12).fill(4), captured: {} };
     }
@@ -210,15 +210,35 @@ class GameService {
   }
 
   subscribe(id: string, callback: (session: GameSession) => void) {
-    const handler = (e: any) => callback(JSON.parse(JSON.stringify(e.detail)));
-    window.addEventListener(`game_update_${id}`, handler);
-    // Initial call
-    if (this.sessions[id]) callback(JSON.parse(JSON.stringify(this.sessions[id])));
-    return () => window.removeEventListener(`game_update_${id}`, handler);
+    return onSnapshot(doc(this.sessionsCollection, id), (doc) => {
+      if (doc.exists()) {
+        callback(doc.data() as GameSession);
+      }
+    });
   }
 
   async getActiveGames(): Promise<GameSession[]> {
-    return Object.values(this.sessions).filter(s => s.status === 'waiting');
+    const q = query(this.sessionsCollection, where('status', '==', 'waiting'), limit(20));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => doc.data() as GameSession);
+  }
+
+  async getResumeableGame(userId: string, type: GameType): Promise<GameSession | null> {
+    const q = query(
+      this.sessionsCollection, 
+      where('type', '==', type),
+      where('status', '==', 'playing'),
+      orderBy('createdAt', 'desc'),
+      limit(10)
+    );
+    
+    const snap = await getDocs(q);
+    const sessions = snap.docs.map(doc => doc.data() as GameSession);
+    return sessions.find(s => s.players.some(p => p.id === userId)) || null;
+  }
+
+  async deleteSession(id: string) {
+    await deleteDoc(doc(this.sessionsCollection, id));
   }
 }
 

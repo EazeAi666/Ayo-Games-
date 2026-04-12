@@ -44,6 +44,7 @@ export interface LudoState {
   positions: Record<string, number[]>; // PlayerID -> [pos1, pos2, pos3, pos4]
   diceValues: number[];
   canRoll: boolean;
+  usedDice?: boolean[];
 }
 
 // Ayo specific state

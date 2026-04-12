@@ -128,10 +128,11 @@ export default function LudoGame({ session, user }: LudoGameProps) {
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [showRules, setShowRules] = useState(false);
-  const [usedDice, setUsedDice] = useState<boolean[]>([false, false]);
   const [selectedDieIdx, setSelectedDieIdx] = useState<number | null>(null);
   const [animatingToken, setAnimatingToken] = useState<{playerId: string, tokenIndex: number, currentStep: number} | null>(null);
   const [isMoving, setIsMoving] = useState(false);
+
+  const usedDice = gameState.usedDice || [false, false];
 
   const addLog = (msg: string) => {
     setGameLog(prev => [msg, ...prev].slice(0, 50));
@@ -168,7 +169,8 @@ export default function LudoGame({ session, user }: LudoGameProps) {
     gameService.updateGameState(session.id, {
       positions,
       diceValues: [0, 0],
-      canRoll: true
+      canRoll: true,
+      usedDice: [false, false]
     });
   };
 
@@ -184,8 +186,6 @@ export default function LudoGame({ session, user }: LudoGameProps) {
     const playerName = session.players.find(p => p.id === playerId)?.name || 'Player';
     addLog(`${playerName} rolled ${val1} and ${val2}`);
 
-    setUsedDice([false, false]);
-
     const canMoveAny = gameState.positions[playerId].some(pos => 
       (pos === -1 && (val1 === 6 || val2 === 6)) || 
       (pos >= 0 && (pos + val1 <= 57 || pos + val2 <= 57 || pos + val1 + val2 <= 57))
@@ -197,13 +197,15 @@ export default function LudoGame({ session, user }: LudoGameProps) {
       gameService.updateGameState(session.id, {
         ...gameState,
         diceValues: [val1, val2],
-        canRoll: true
+        canRoll: true,
+        usedDice: [false, false]
       }, session.players[nextTurnIndex].id);
     } else {
       gameService.updateGameState(session.id, {
         ...gameState,
         diceValues: [val1, val2],
-        canRoll: false
+        canRoll: false,
+        usedDice: [false, false]
       });
     }
   };
@@ -304,7 +306,6 @@ export default function LudoGame({ session, user }: LudoGameProps) {
     // Update used dice
     const newUsedDice = [...usedDice];
     usedIndices.forEach(i => newUsedDice[i] = true);
-    setUsedDice(newUsedDice);
 
     // Immutable update
     const newPositions = { ...gameState.positions };
@@ -338,13 +339,15 @@ export default function LudoGame({ session, user }: LudoGameProps) {
         ...gameState,
         positions: newPositions,
         diceValues: [0, 0],
-        canRoll: true
+        canRoll: true,
+        usedDice: [false, false]
       }, session.players[nextTurnIndex].id);
     } else {
       // Still have dice to use
       gameService.updateGameState(session.id, {
         ...gameState,
-        positions: newPositions
+        positions: newPositions,
+        usedDice: newUsedDice
       });
     }
 

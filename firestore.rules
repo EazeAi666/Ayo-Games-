@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'name']) &&
+             data.id is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 50;
+    }
+    
+    function isValidGame(data) {
+      return data.keys().hasAll(['id', 'type', 'status', 'players', 'createdAt']) &&
+             data.id is string &&
+             data.type in ['chess', 'whot', 'ludo', 'ayo'] &&
+             data.status in ['waiting', 'playing', 'finished'] &&
+             data.players is list &&
+             data.createdAt is number;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+
+    // Games Collection
+    match /games/{gameId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidGame(request.resource.data);
+      allow update: if isAuthenticated() && isValidGame(request.resource.data);
+      allow delete: if false; // No manual deletion for now
+    }
+  }
+}

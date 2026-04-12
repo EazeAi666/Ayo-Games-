@@ -44,19 +44,26 @@ interface FirestoreErrorInfo {
 }
 
 class GameService {
-  private sessionsCollection = collection(db, 'games');
-  private usersCollection = collection(db, 'users');
+  private get sessionsCollection() {
+    if (!db) throw new Error('Firestore database not initialized. Please check your Firebase configuration.');
+    return collection(db, 'games');
+  }
+
+  private get usersCollection() {
+    if (!db) throw new Error('Firestore database not initialized. Please check your Firebase configuration.');
+    return collection(db, 'users');
+  }
 
   private handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
     const errInfo: FirestoreErrorInfo = {
       error: error instanceof Error ? error.message : String(error),
       authInfo: {
-        userId: auth.currentUser?.uid,
-        email: auth.currentUser?.email,
-        emailVerified: auth.currentUser?.emailVerified,
-        isAnonymous: auth.currentUser?.isAnonymous,
-        tenantId: auth.currentUser?.tenantId,
-        providerInfo: auth.currentUser?.providerData.map(provider => ({
+        userId: auth?.currentUser?.uid,
+        email: auth?.currentUser?.email,
+        emailVerified: auth?.currentUser?.emailVerified,
+        isAnonymous: auth?.currentUser?.isAnonymous,
+        tenantId: auth?.currentUser?.tenantId,
+        providerInfo: auth?.currentUser?.providerData.map(provider => ({
           providerId: provider.providerId,
           displayName: provider.displayName,
           email: provider.email,

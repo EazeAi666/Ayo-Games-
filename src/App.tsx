@@ -83,6 +83,10 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      setIsAuthLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const savedUser = localStorage.getItem('ayo_user');
@@ -121,6 +125,10 @@ export default function App() {
   }, [activeSession?.id]);
 
   const handleLogin = async () => {
+    if (!auth) {
+      alert("Firebase Authentication is not initialized. Please check your configuration.");
+      return;
+    }
     try {
       setIsAuthLoading(true);
       const provider = new GoogleAuthProvider();
@@ -133,7 +141,9 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await auth.signOut();
+    if (auth) {
+      await auth.signOut();
+    }
     setUser(null);
     setActiveSession(null);
     localStorage.removeItem('ayo_user');

@@ -9,11 +9,22 @@ service cloud.firestore {
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "isrealadesina3@gmail.com" && request.auth.token.email_verified == true));
+    }
     
     function isValidUser(data) {
       return data.keys().hasAll(['id', 'name']) &&
              data.id is string &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 50;
+             data.name is string && data.name.size() > 0 && data.name.size() < 50 &&
+             (!('avatar' in data) || data.avatar is string) &&
+             (!('wins' in data) || data.wins is number) &&
+             (!('losses' in data) || data.losses is number) &&
+             (!('lastActive' in data) || data.lastActive is number) &&
+             (!('role' in data) || data.role in ['admin', 'user']);
     }
     
     function isValidGame(data) {
@@ -22,13 +33,21 @@ service cloud.firestore {
              data.type in ['chess', 'whot', 'ludo', 'ayo'] &&
              data.status in ['waiting', 'playing', 'finished'] &&
              data.players is list &&
-             data.createdAt is number;
+             data.createdAt is number &&
+             // Optional fields
+             (!('isAI' in data) || data.isAI is bool) &&
+             (!('isLocal' in data) || data.isLocal is bool) &&
+             (!('difficulty' in data) || data.difficulty is string) &&
+             (!('currentTurn' in data) || data.currentTurn is string) &&
+             (!('winner' in data) || data.winner is string) &&
+             (!('state' in data) || data.state is map);
     }
 
     // Users Collection
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create, update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && (!('role' in request.resource.data) || request.resource.data.role == 'user' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['wins', 'losses', 'lastActive']));
     }
 
     // Games Collection

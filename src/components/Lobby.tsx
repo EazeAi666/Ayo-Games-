@@ -67,7 +67,10 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
     setIsCreating(true);
     try {
       let session;
-      const userWithColor = { ...user, color: setupGame.type === 'chess' ? chessColor : undefined };
+      const userWithColor: Player = { ...user };
+      if (setupGame.type === 'chess') {
+        userWithColor.color = chessColor;
+      }
       
       if (setupGame.mode === 'ai') {
         session = await gameService.createAIGame(setupGame.type, userWithColor, difficulty);

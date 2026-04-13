@@ -77,14 +77,18 @@ class GameService {
     throw new Error(JSON.stringify(errInfo));
   }
 
+  private sanitize(obj: any): any {
+    return JSON.parse(JSON.stringify(obj, (_, v) => v === undefined ? null : v));
+  }
+
   async updateUserProfile(player: Player): Promise<void> {
     const path = `users/${player.id}`;
     try {
       const userRef = doc(this.usersCollection, player.id);
-      await setDoc(userRef, {
+      await setDoc(userRef, this.sanitize({
         ...player,
         lastActive: Date.now()
-      }, { merge: true });
+      }), { merge: true });
     } catch (error) {
       this.handleFirestoreError(error, OperationType.WRITE, path);
     }
@@ -104,7 +108,7 @@ class GameService {
     };
     
     try {
-      await setDoc(doc(this.sessionsCollection, id), session);
+      await setDoc(doc(this.sessionsCollection, id), this.sanitize(session));
       return session;
     } catch (error) {
       this.handleFirestoreError(error, OperationType.CREATE, path);
@@ -134,7 +138,7 @@ class GameService {
     };
     
     try {
-      await setDoc(doc(this.sessionsCollection, id), session);
+      await setDoc(doc(this.sessionsCollection, id), this.sanitize(session));
       return session;
     } catch (error) {
       this.handleFirestoreError(error, OperationType.CREATE, path);
@@ -167,7 +171,7 @@ class GameService {
     };
     
     try {
-      await setDoc(doc(this.sessionsCollection, id), session);
+      await setDoc(doc(this.sessionsCollection, id), this.sanitize(session));
       return session;
     } catch (error) {
       this.handleFirestoreError(error, OperationType.CREATE, path);
@@ -196,7 +200,7 @@ class GameService {
           updates.status = 'playing';
         }
         
-        await updateDoc(docRef, updates);
+        await updateDoc(docRef, this.sanitize(updates));
         return { ...session, ...updates };
       }
       
@@ -214,7 +218,7 @@ class GameService {
       const updates: any = { state: newState };
       if (nextTurn) updates.currentTurn = nextTurn;
       
-      await updateDoc(docRef, updates);
+      await updateDoc(docRef, this.sanitize(updates));
     } catch (error) {
       this.handleFirestoreError(error, OperationType.UPDATE, path);
     }
@@ -224,7 +228,7 @@ class GameService {
     const path = `games/${id}`;
     try {
       const docRef = doc(this.sessionsCollection, id);
-      await updateDoc(docRef, updates);
+      await updateDoc(docRef, this.sanitize(updates));
     } catch (error) {
       this.handleFirestoreError(error, OperationType.UPDATE, path);
     }
@@ -240,10 +244,10 @@ class GameService {
       
       if (session.status === 'finished') return;
 
-      await updateDoc(docRef, {
+      await updateDoc(docRef, this.sanitize({
         status: 'finished',
         winner: winnerId
-      });
+      }));
 
       // Update global stats in Firestore
       for (const p of session.players) {

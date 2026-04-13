@@ -7,6 +7,7 @@ import ChessGame from './components/games/ChessGame';
 import WhotGame from './components/games/WhotGame';
 import LudoGame from './components/games/LudoGame';
 import AyoGame from './components/games/AyoGame';
+import LandingPage from './components/LandingPage';
 import { Trophy, Users, Gamepad2, LogOut, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth } from './lib/firebase';
@@ -85,6 +86,7 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [nickname, setNickname] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showLanding, setShowLanding] = useState(true);
 
   useEffect(() => {
     if (!auth) {
@@ -221,6 +223,10 @@ export default function App() {
         <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
       </div>
     );
+  }
+
+  if (showLanding && !user) {
+    return <LandingPage onStart={() => setShowLanding(false)} />;
   }
 
   if (!user) {

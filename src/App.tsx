@@ -10,7 +10,9 @@ import AyoGame from './components/games/AyoGame';
 import { Trophy, Users, Gamepad2, LogOut, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth } from './lib/firebase';
-import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
+import { signInAnonymously, onAuthStateChanged, updateProfile } from 'firebase/auth';
+import { Input } from '@/components/ui/input';
+import { User } from 'lucide-react';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -81,6 +83,8 @@ export default function App() {
   const [user, setUser] = useState<Player | null>(null);
   const [activeSession, setActiveSession] = useState<GameSession | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [nickname, setNickname] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     if (!auth) {
@@ -124,24 +128,34 @@ export default function App() {
     }
   }, [activeSession?.id]);
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nickname.trim()) return;
     if (!auth) {
       alert("Firebase Authentication is not initialized. Please check your configuration.");
       return;
     }
     try {
-      setIsAuthLoading(true);
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      setIsLoggingIn(true);
+      const { user: firebaseUser } = await signInAnonymously(auth);
+      await updateProfile(firebaseUser, { displayName: nickname });
+      
+      const userData: Player = {
+        id: firebaseUser.uid,
+        name: nickname,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
+        wins: 0,
+        losses: 0,
+      };
+      
+      setUser(userData);
+      localStorage.setItem('ayo_user', JSON.stringify(userData));
+      await gameService.updateUserProfile(userData);
     } catch (error: any) {
       console.error("Auth Error:", error);
-      if (error.code === 'auth/unauthorized-domain') {
-        alert("This domain is not authorized for Firebase Authentication. Please add it to 'Authorized Domains' in your Firebase Console.");
-      } else {
-        alert(`Login failed: ${error.message}. Please check your internet connection or try again later.`);
-      }
+      alert(`Login failed: ${error.message}. Please ensure Anonymous Auth is enabled in your Firebase Console.`);
     } finally {
-      setIsAuthLoading(false);
+      setIsLoggingIn(false);
     }
   };
 
@@ -194,15 +208,36 @@ export default function App() {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-center text-white mb-2">Ayo Games</h1>
-          <p className="text-zinc-400 text-center mb-8">Sign in with Google to start playing</p>
+          <p className="text-zinc-400 text-center mb-8">Enter a nickname to start playing</p>
           
-          <Button 
-            onClick={handleLogin} 
-            className="w-full bg-white hover:bg-zinc-200 text-black font-bold py-6 rounded-lg transition-all flex items-center justify-center gap-3"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" alt="Google" />
-            Sign in with Google
-          </Button>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+              <Input
+                type="text"
+                placeholder="Your Nickname"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                className="pl-10 bg-zinc-800 border-zinc-700 text-white h-12 rounded-xl focus:ring-orange-500"
+                maxLength={15}
+                required
+              />
+            </div>
+            <Button 
+              type="submit"
+              disabled={isLoggingIn || !nickname.trim()}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold h-12 rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              {isLoggingIn ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                "Start Playing"
+              )}
+            </Button>
+          </form>
+          <p className="text-xs text-zinc-500 text-center mt-6">
+            Multiplayer games require a connection to our game server.
+          </p>
         </motion.div>
       </div>
     );

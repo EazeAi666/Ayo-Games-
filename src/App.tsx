@@ -133,8 +133,13 @@ export default function App() {
       setIsAuthLoading(true);
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Auth Error:", error);
+      if (error.code === 'auth/unauthorized-domain') {
+        alert("This domain is not authorized for Firebase Authentication. Please add it to 'Authorized Domains' in your Firebase Console.");
+      } else {
+        alert(`Login failed: ${error.message}. Please check your internet connection or try again later.`);
+      }
     } finally {
       setIsAuthLoading(false);
     }
@@ -148,6 +153,24 @@ export default function App() {
     setActiveSession(null);
     localStorage.removeItem('ayo_user');
   };
+
+  if (!auth) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 p-8 rounded-2xl shadow-2xl text-center">
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 bg-red-500 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/20">
+              <Gamepad2 className="w-10 h-10 text-white" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Config Error</h1>
+          <p className="text-zinc-400 mb-8">
+            Firebase is not correctly configured. Please ensure <code className="bg-zinc-800 px-1 rounded">firebase-applet-config.json</code> exists.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (isAuthLoading) {
     return (

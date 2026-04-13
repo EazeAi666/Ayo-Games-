@@ -17,6 +17,7 @@ interface LobbyProps {
 }
 
 export default function Lobby({ user, onJoinGame }: LobbyProps) {
+  console.log("Lobby mounting for user:", user.name);
   const [activeGames, setActiveGames] = useState<GameSession[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [isCreating, setIsCreating] = useState(false);
@@ -30,12 +31,20 @@ export default function Lobby({ user, onJoinGame }: LobbyProps) {
 
   useEffect(() => {
     const fetchGames = async () => {
-      const games = await gameService.getActiveGames();
-      setActiveGames(games);
+      try {
+        const games = await gameService.getActiveGames();
+        setActiveGames(games);
+      } catch (err) {
+        console.error("Failed to fetch games:", err);
+      }
     };
     const fetchLeaderboard = async () => {
-      const stats = await gameService.getLeaderboard();
-      setLeaderboard(stats);
+      try {
+        const stats = await gameService.getLeaderboard();
+        setLeaderboard(stats);
+      } catch (err) {
+        console.error("Failed to fetch leaderboard:", err);
+      }
     };
     fetchGames();
     fetchLeaderboard();

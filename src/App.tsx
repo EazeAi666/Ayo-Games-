@@ -92,29 +92,41 @@ export default function App() {
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const savedUser = localStorage.getItem('ayo_user');
-        let userData: Player;
-        
-        if (savedUser) {
-          userData = { ...JSON.parse(savedUser), id: firebaseUser.uid };
+      console.log("Auth state changed:", firebaseUser?.uid);
+      try {
+        if (firebaseUser) {
+          const savedUser = localStorage.getItem('ayo_user');
+          let userData: Player;
+          
+          if (savedUser) {
+            const parsed = JSON.parse(savedUser);
+            userData = { ...parsed, id: firebaseUser.uid };
+            if (firebaseUser.displayName) {
+              userData.name = firebaseUser.displayName;
+            }
+          } else {
+            userData = {
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || "Player",
+              avatar: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
+              wins: 0,
+              losses: 0,
+            };
+          }
+          
+          console.log("Setting user state:", userData.name);
+          setUser(userData);
+          localStorage.setItem('ayo_user', JSON.stringify(userData));
+          gameService.updateUserProfile(userData).catch(err => console.error("Profile update failed:", err));
         } else {
-          userData = {
-            id: firebaseUser.uid,
-            name: firebaseUser.displayName || "Player",
-            avatar: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
-            wins: 0,
-            losses: 0,
-          };
+          console.log("No user found, setting to null");
+          setUser(null);
         }
-        
-        setUser(userData);
-        localStorage.setItem('ayo_user', JSON.stringify(userData));
-        await gameService.updateUserProfile(userData);
-      } else {
-        setUser(null);
+      } catch (error) {
+        console.error("Auth state change error:", error);
+      } finally {
+        setIsAuthLoading(false);
       }
-      setIsAuthLoading(false);
     });
     return unsubscribe;
   }, []);
@@ -130,19 +142,30 @@ export default function App() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nickname.trim()) return;
+    const cleanNickname = nickname.trim();
+    if (!cleanNickname) return;
+    
     if (!auth) {
       alert("Firebase Authentication is not initialized. Please check your configuration.");
       return;
     }
+
     try {
       setIsLoggingIn(true);
+      console.log("Attempting anonymous sign in...");
       const { user: firebaseUser } = await signInAnonymously(auth);
-      await updateProfile(firebaseUser, { displayName: nickname });
+      console.log("Anonymous sign in success:", firebaseUser.uid);
+      
+      // Update profile with nickname
+      await updateProfile(firebaseUser, { 
+        displayName: cleanNickname,
+        photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`
+      });
+      console.log("Profile updated with nickname:", cleanNickname);
       
       const userData: Player = {
         id: firebaseUser.uid,
-        name: nickname,
+        name: cleanNickname,
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
         wins: 0,
         losses: 0,
@@ -150,10 +173,16 @@ export default function App() {
       
       setUser(userData);
       localStorage.setItem('ayo_user', JSON.stringify(userData));
-      await gameService.updateUserProfile(userData);
+      // Don't await this to avoid blocking the UI transition
+      gameService.updateUserProfile(userData).catch(err => console.error("Profile update failed:", err));
+      console.log("User profile update initiated");
     } catch (error: any) {
       console.error("Auth Error:", error);
-      alert(`Login failed: ${error.message}. Please ensure Anonymous Auth is enabled in your Firebase Console.`);
+      let msg = error.message;
+      if (msg.includes("auth/operation-not-allowed")) {
+        msg = "Anonymous Auth is not enabled in Firebase Console. Please go to Authentication > Sign-in method and enable 'Anonymous'.";
+      }
+      alert(`Login failed: ${msg}`);
     } finally {
       setIsLoggingIn(false);
     }
